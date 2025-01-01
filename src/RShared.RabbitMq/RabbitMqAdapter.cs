@@ -1,4 +1,8 @@
-﻿namespace RShared.RabbitMq;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Linq;
+
+namespace RShared.RabbitMq;
 
 internal sealed class RabbitMqAdapter
 	: IRabbitMqConsumerAdapter, IRabbitMqPublisherAdapter
@@ -7,10 +11,11 @@ internal sealed class RabbitMqAdapter
 	private readonly List<RabbitMqConnectionAdapter> _connections;
 	private readonly List<IRabbitMqMessageSerializer> _serializers;
 	private readonly IDefaultRabbitMqMessageSerializer? _defaultSerializer;
-	private readonly Dictionary<string, IRabbitMqMessageProcessor> _processors;
+	private readonly Dictionary<string, ProcessorDelegate> _processors;
 	private readonly Dictionary<string, RabbitMqChannelAdapter> _channels;
+	private readonly IServiceProvider _serviceProvider;
 
-	public RabbitMqAdapter(IEnumerable<RabbitMqConfiguration> configurations, IEnumerable<IRabbitMqMessageProcessor> processors,
+	public RabbitMqAdapter(IEnumerable<RabbitMqConfiguration> configurations, IServiceProvider serviceProvider,
 		IEnumerable<IRabbitMqMessageSerializer> serializers, IDefaultRabbitMqMessageSerializer? defaultSerializer)
 	{
 		_configurations = (configurations ?? throw new ArgumentNullException(nameof(configurations))).ToList();
@@ -19,8 +24,9 @@ internal sealed class RabbitMqAdapter
 		_connections = new();
 		_processors = new();
 		_channels = new();
+		_serviceProvider = serviceProvider;
 
-		VerifyProcessors(processors);
+		VerifyProcessors();
 	}
 
 
@@ -36,8 +42,7 @@ internal sealed class RabbitMqAdapter
 			foreach (var queueConfiguration in configuration.Queues)
 			{
 				_processors.TryGetValue(queueConfiguration.Id, out var processor);
-
-				var channel = await connection.CreateChannelAsync(processor, queueConfiguration, cancellationToken);
+				var channel = await connection.CreateChannelAsync(queueConfiguration, processor, cancellationToken);
 
 				if (!_channels.TryAdd(queueConfiguration.Id, channel))
 				{
@@ -84,20 +89,35 @@ internal sealed class RabbitMqAdapter
 
 
 
-	private void VerifyProcessors(IEnumerable<IRabbitMqMessageProcessor> processors)
+	private void VerifyProcessors()
 	{
-		if (processors is null)
-		{
-			throw new ArgumentNullException(nameof(processors));
-		}
+		using var scope = _serviceProvider.CreateScope();
+
+		var processors = scope.ServiceProvider.GetServices<IRabbitMqMessageProcessor>() ?? [];
 
 		foreach (var processor in processors)
 		{
-			if (!_processors.TryAdd(processor.QueueId, processor))
+			if (!_processors.TryAdd(processor.QueueId, CreateProcessorDelegate(processor.QueueId)))
 			{
 				throw new InvalidOperationException($"Processor already exists for queue {processor.QueueId}");
 			}
 		}
+	}
+
+	private ProcessorDelegate CreateProcessorDelegate(string queueId)
+	{
+		Task<bool> ProcessorDelegateInternal(RabbitMqMessage message, CancellationToken cancellation)
+		{
+			using var scope = _serviceProvider.CreateScope();
+
+			var processors = scope.ServiceProvider.GetServices<IRabbitMqMessageProcessor>() ?? [];
+
+			var processor = processors.Single(p => p.QueueId == queueId);
+
+			return processor.ProcessAsync(message, cancellation);
+		}
+
+		return ProcessorDelegateInternal;
 	}
 
 	private Task<RabbitMqMessage> SerializeAsync<T>(T data, CancellationToken cancellationToken)

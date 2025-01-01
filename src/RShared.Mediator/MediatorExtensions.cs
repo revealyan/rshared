@@ -22,7 +22,8 @@ public static class MediatorExtensions
 	/// <returns>Service collection</returns>
 	public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorOption>? configure = null)
 	{
-		services.TryAddSingleton<IMediator, Mediator>();
+		services.TryAddScoped<IMediator, Mediator>();
+		Console.WriteLine("HUI 2");
 
 		var options = new MediatorOption();
 
@@ -33,7 +34,6 @@ public static class MediatorExtensions
 			var handlersTypes = (options.Assemblies ?? AppDomain.CurrentDomain.GetAssemblies())
 				.SelectMany(a => a.GetTypes())
 				.Where(t => t.IsClass && !t.IsAbstract && t.IsAssignableTo(MarkerType))
-				.Where(t => !services.Any(sd => sd.ImplementationType == t))
 				.ToArray();
 
 			foreach (var handlerType in handlersTypes)
@@ -55,7 +55,7 @@ public static class MediatorExtensions
 	{
 		return services.Any(sd => sd.ImplementationType == messageHandlerType)
 			? services
-			: services.AddSingleton(MarkerType, messageHandlerType);
+			: services.AddScoped(MarkerType, messageHandlerType);
 	}
 
 	/// <summary>
