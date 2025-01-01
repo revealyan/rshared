@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{41DAD39C-1A1
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RShared.Mediator", "src\RShared.Mediator\RShared.Mediator.csproj", "{45FF0D4A-8905-4389-89F8-30392E3903A9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RShared.RabbitMq", "src\RShared.RabbitMq\RShared.RabbitMq.csproj", "{BA7BAB02-18EA-4D41-AB55-B886D2E37AD2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,11 +19,16 @@ Global
 		{45FF0D4A-8905-4389-89F8-30392E3903A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45FF0D4A-8905-4389-89F8-30392E3903A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{45FF0D4A-8905-4389-89F8-30392E3903A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA7BAB02-18EA-4D41-AB55-B886D2E37AD2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA7BAB02-18EA-4D41-AB55-B886D2E37AD2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA7BAB02-18EA-4D41-AB55-B886D2E37AD2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA7BAB02-18EA-4D41-AB55-B886D2E37AD2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{45FF0D4A-8905-4389-89F8-30392E3903A9} = {41DAD39C-1A18-4FF7-9186-99D757077076}
+		{BA7BAB02-18EA-4D41-AB55-B886D2E37AD2} = {41DAD39C-1A18-4FF7-9186-99D757077076}
 	EndGlobalSection
 EndGlobal
