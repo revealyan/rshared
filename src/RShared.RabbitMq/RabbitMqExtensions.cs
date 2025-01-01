@@ -26,7 +26,6 @@ public static class RabbitMqExtensions
 	/// <returns>Service collection</returns>
 	public static IApplicationBuilder UseRabbitMq(this IApplicationBuilder app)
 	{
-		Console.WriteLine("HUI");
 		var lifetime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
 		var adapter = app.ApplicationServices.GetRequiredService<IRabbitMqConsumerAdapter>();
 

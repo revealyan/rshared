@@ -23,7 +23,6 @@ public static class MediatorExtensions
 	public static IServiceCollection AddMediator(this IServiceCollection services, Action<MediatorOption>? configure = null)
 	{
 		services.TryAddScoped<IMediator, Mediator>();
-		Console.WriteLine("HUI 2");
 
 		var options = new MediatorOption();
 
