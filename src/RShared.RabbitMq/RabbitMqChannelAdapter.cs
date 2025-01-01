@@ -4,12 +4,14 @@ using System.Text;
 
 namespace RShared.RabbitMq;
 
+internal delegate Task<bool> ProcessorDelegate(RabbitMqMessage message, CancellationToken cancellationToken);
+
 internal sealed class RabbitMqChannelAdapter
 {
-	internal static async Task<RabbitMqChannelAdapter> CreateAsync(IChannel channel, IRabbitMqMessageProcessor? processor,
-		RabbitMqQueueConfiguration configuration, CancellationToken cancellationToken = default)
+	internal static async Task<RabbitMqChannelAdapter> CreateAsync(IChannel channel, RabbitMqQueueConfiguration configuration,
+		ProcessorDelegate? processor, CancellationToken cancellationToken = default)
 	{
-		var adapter = new RabbitMqChannelAdapter(channel, processor, configuration);
+		var adapter = new RabbitMqChannelAdapter(channel, configuration, processor);
 
 		await adapter.InitAsync(cancellationToken);
 
@@ -24,7 +26,7 @@ internal sealed class RabbitMqChannelAdapter
 	/// <summary>
 	/// Message processor of queue
 	/// </summary>
-	private readonly IRabbitMqMessageProcessor? _messageProcessor;
+	private readonly ProcessorDelegate? _processor;
 
 	/// <summary>
 	/// Queue configuraiton
@@ -36,10 +38,10 @@ internal sealed class RabbitMqChannelAdapter
 	/// </summary>
 	/// <param name="channel"></param>
 	/// <param name="messageProcessor"></param>
-	private RabbitMqChannelAdapter(IChannel channel, IRabbitMqMessageProcessor? messageProcessor, RabbitMqQueueConfiguration configuration)
+	private RabbitMqChannelAdapter(IChannel channel, RabbitMqQueueConfiguration configuration, ProcessorDelegate? processor)
 	{
 		_channel = channel;
-		_messageProcessor = messageProcessor;
+		_processor = processor;
 		_configuration = configuration;
 	}
 
@@ -51,7 +53,7 @@ internal sealed class RabbitMqChannelAdapter
 
 	private async Task InitAsync(CancellationToken cancellationToken = default)
 	{
-		if (_messageProcessor is not null)
+		if (_processor is not null)
 		{
 			var consumer = new AsyncEventingBasicConsumer(_channel);
 
@@ -65,7 +67,7 @@ internal sealed class RabbitMqChannelAdapter
 					Properties = new Dictionary<string, object?>(0),
 				};
 
-				return _messageProcessor.ProcessAsync(message, args.CancellationToken);
+				return _processor(message, args.CancellationToken);
 			};
 
 

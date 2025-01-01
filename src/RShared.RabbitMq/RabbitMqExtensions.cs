@@ -26,6 +26,7 @@ public static class RabbitMqExtensions
 	/// <returns>Service collection</returns>
 	public static IApplicationBuilder UseRabbitMq(this IApplicationBuilder app)
 	{
+		Console.WriteLine("HUI");
 		var lifetime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
 		var adapter = app.ApplicationServices.GetRequiredService<IRabbitMqConsumerAdapter>();
 
@@ -68,7 +69,7 @@ public static class RabbitMqExtensions
 		var configurations = configuration.GetSection("rabbitmq")?.Get<RabbitMqConfiguration[]>() ?? throw new ArgumentNullException("RabbitMq configurations not found");
 
 		services.TryAddSingleton(sp => new RabbitMqAdapter(configurations,
-				sp.GetServices<IRabbitMqMessageProcessor>(),
+				sp,
 				sp.GetServices<IRabbitMqMessageSerializer>(),
 				sp.GetService<IDefaultRabbitMqMessageSerializer>()));
 		services.TryAddSingleton<IRabbitMqConsumerAdapter>(sp => sp.GetRequiredService<RabbitMqAdapter>());
@@ -148,6 +149,6 @@ public static class RabbitMqExtensions
 	{
 		return services.Any(sd => sd.ImplementationType == messageProcessorType)
 			? services
-			: services.AddSingleton(MessageProcessorMarker, messageProcessorType);
+			: services.AddScoped(MessageProcessorMarker, messageProcessorType);
 	}
 }

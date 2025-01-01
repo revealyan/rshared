@@ -59,14 +59,14 @@ internal sealed class RabbitMqConnectionAdapter
 		_connection = null;
 	}
 
-	public async Task<RabbitMqChannelAdapter> CreateChannelAsync(IRabbitMqMessageProcessor? processor,
-		RabbitMqQueueConfiguration queueConfiguration, CancellationToken cancellationToken = default)
+	public async Task<RabbitMqChannelAdapter> CreateChannelAsync(RabbitMqQueueConfiguration queueConfiguration,
+		ProcessorDelegate? processor, CancellationToken cancellationToken = default)
 	{
 		if (_connection is not null && _connection.IsOpen)
 		{
 			var channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
 
-			return await RabbitMqChannelAdapter.CreateAsync(channel, processor, queueConfiguration);
+			return await RabbitMqChannelAdapter.CreateAsync(channel, queueConfiguration, processor);
 		}
 
 		throw new InvalidOperationException("Connection closed");
