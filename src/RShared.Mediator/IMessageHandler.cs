@@ -23,5 +23,5 @@ public interface IMessageHandler<in TMessage>
 public interface IMessageHandler<in TRequest, TResponse>
 	: IMessageHandler
 {
-	public Task<TResponse?> HandleAsync(TRequest request, CancellationToken cancellationToken = default);
+	public Task<TResponse> HandleAsync(TRequest request, CancellationToken cancellationToken = default);
 }

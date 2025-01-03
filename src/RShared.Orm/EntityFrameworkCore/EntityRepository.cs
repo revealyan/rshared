@@ -1,6 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System.Collections;
-using System.Linq.Expressions;
 
 namespace RShared.Orm.EntityFrameworkCore;
 
@@ -24,6 +22,12 @@ internal class EntityRepository<TEntity>
 	}
 
 
+
+	/// <inheritdoc />
+	public IQueryable<TEntity> Query()
+	{
+		return Context.Set<TEntity>();
+	}
 
 	/// <inheritdoc />
 	public async Task<TEntity> InsertAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -52,19 +56,4 @@ internal class EntityRepository<TEntity>
 	{
 		return Task.FromResult<TEntity?>(Context.Set<TEntity>().Remove(entity).Entity);
 	}
-
-
-
-
-	// ---- IQueryable ----
-	public Type ElementType => ((IQueryable<TEntity>)Context.Set<TEntity>()).ElementType;
-
-	public Expression Expression => ((IQueryable<TEntity>)Context.Set<TEntity>()).Expression;
-
-	public IQueryProvider Provider => ((IQueryable<TEntity>)Context.Set<TEntity>()).Provider;
-
-	public IEnumerator<TEntity> GetEnumerator() => ((IQueryable<TEntity>)Context.Set<TEntity>()).GetEnumerator();
-
-	IEnumerator IEnumerable.GetEnumerator() => ((IQueryable<TEntity>)Context.Set<TEntity>()).GetEnumerator();
-	// ---- IQueryable ----
 }
