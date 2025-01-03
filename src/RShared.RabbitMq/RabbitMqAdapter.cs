@@ -1,6 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Linq;
 
 namespace RShared.RabbitMq;
 
@@ -25,14 +23,14 @@ internal sealed class RabbitMqAdapter
 		_processors = new();
 		_channels = new();
 		_serviceProvider = serviceProvider;
-
-		VerifyProcessors();
 	}
 
 
 
 	public async Task StartAsync(CancellationToken cancellationToken = default)
 	{
+		VerifyProcessors();
+
 		foreach (var configuration in _configurations)
 		{
 			var connection = new RabbitMqConnectionAdapter(configuration);
@@ -106,7 +104,7 @@ internal sealed class RabbitMqAdapter
 
 	private ProcessorDelegate CreateProcessorDelegate(string queueId)
 	{
-		Task<bool> ProcessorDelegateInternal(RabbitMqMessage message, CancellationToken cancellation)
+		async Task<bool> ProcessorDelegateInternal(RabbitMqMessage message, CancellationToken cancellation)
 		{
 			using var scope = _serviceProvider.CreateScope();
 
@@ -114,7 +112,7 @@ internal sealed class RabbitMqAdapter
 
 			var processor = processors.Single(p => p.QueueId == queueId);
 
-			return processor.ProcessAsync(message, cancellation);
+			return await processor.ProcessAsync(message, cancellation);
 		}
 
 		return ProcessorDelegateInternal;

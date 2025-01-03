@@ -1,6 +1,7 @@
 ﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
+using System.Threading.Channels;
 
 namespace RShared.RabbitMq;
 
@@ -57,7 +58,7 @@ internal sealed class RabbitMqChannelAdapter
 		{
 			var consumer = new AsyncEventingBasicConsumer(_channel);
 
-			consumer.ReceivedAsync += (_, args) =>
+			consumer.ReceivedAsync += async (_, args) =>
 			{
 				var message = new RabbitMqMessage
 				{
@@ -67,11 +68,22 @@ internal sealed class RabbitMqChannelAdapter
 					Properties = new Dictionary<string, object?>(0),
 				};
 
-				return _processor(message, args.CancellationToken);
+				try
+				{
+					await _processor(message, args.CancellationToken);
+				}
+				catch
+				{
+					throw;
+				}
+				finally
+				{
+					await _channel.BasicAckAsync(deliveryTag: args.DeliveryTag, multiple: false);
+				}
 			};
 
 
-			await _channel.BasicConsumeAsync(_configuration.QueueName, true, consumer, cancellationToken).ConfigureAwait(false);
+			await _channel.BasicConsumeAsync(_configuration.QueueName, false, consumer, cancellationToken).ConfigureAwait(false);
 		}
 	}
 }

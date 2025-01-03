@@ -5,9 +5,14 @@
 /// </summary>
 /// <typeparam name="TEntity">Entity type</typeparam>
 public interface IEntityRepository<TEntity>
-	: IQueryable<TEntity>
 	where TEntity : class
 {
+	/// <summary>
+	/// Create IQueryable for entity
+	/// </summary>
+	/// <returns>IQueryable instance</returns>
+	public IQueryable<TEntity> Query();
+
 	/// <summary>
 	/// Insert entity to repository
 	/// </summary>
