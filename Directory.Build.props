@@ -1,7 +1,6 @@
 <Project>
-  <!-- See https://aka.ms/dotnet/msbuild/customize for more details on customizing your build -->
   <PropertyGroup>
-    <Version>0.0.1</Version>
+    <Version>0.0.2</Version>
     <Authors>revealyan</Authors>
     <RepositoryUrl>https://github.com/revealyan/rshared</RepositoryUrl>
   </PropertyGroup>
