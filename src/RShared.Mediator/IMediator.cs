@@ -22,5 +22,5 @@ public interface IMediator
 	/// <param name="request">Request object</param>
 	/// <param name="cancellationToken">Operation cancellation token</param>
 	/// <returns>Response of request handling</returns>
-	public Task<TResponse?> SendAsync<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken = default);
+	public Task<TResponse> SendAsync<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken = default);
 }

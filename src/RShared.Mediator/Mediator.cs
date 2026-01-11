@@ -30,9 +30,9 @@ internal sealed class Mediator
 
 	/// <inheritdoc />
 	/// <exception cref="InvalidOperationException">Throws when can not find single instanse handler</exception>
-	public Task<TResponse?> SendAsync<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken = default)
+	public Task<TResponse> SendAsync<TRequest, TResponse>(TRequest request, CancellationToken cancellationToken = default)
 	{
-		return GetHandler<IMessageHandler<TRequest, TResponse>>().HandleAsync(request, cancellationToken);
+		return GetHandler<IMessageHandler<TRequest, TResponse>>()!.HandleAsync(request, cancellationToken);
 	}
 
 	/// <summary>
