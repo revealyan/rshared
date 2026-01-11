@@ -12,6 +12,8 @@ public static class ServiceCollectionExtensions
 			var registies = (assemblies ?? AppDomain.CurrentDomain.GetAssemblies())
 				.SelectMany(a => a.GetTypes())
 				.Where(t => t.IsAssignableTo(typeof(IRegistry)))
+				.Where(t => !t.IsAbstract)
+				.Where(t => !t.IsInterface)
 				.Distinct()
 				.Select(Activator.CreateInstance)
 				.Cast<IRegistry>()
