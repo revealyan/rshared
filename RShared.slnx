@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RShared.AuthKit/RShared.AuthKit.csproj" />
+    <Project Path="src/RShared.Mediator/RShared.Mediator.csproj" />
+    <Project Path="src/RShared.Orm.EntityFrameworkCore/RShared.Orm.EntityFrameworkCore.csproj" />
+    <Project Path="src/RShared.Orm/RShared.Orm.csproj" />
+    <Project Path="src/RShared.RabbitMq/RShared.RabbitMq.csproj" />
+  </Folder>
+</Solution>
