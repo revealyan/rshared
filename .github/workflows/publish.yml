@@ -1,0 +1,32 @@
+name: publish packages
+
+# Публикация NuGet-пакетов rshared в GitHub Packages.
+# Триггер: тег v* (версия берётся из Directory.Build.props) или ручной запуск.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Pack
+        run: dotnet pack RShared.slnx -c Release -o dist
+
+      - name: Push to GitHub Packages
+        run: >
+          dotnet nuget push "dist/*.nupkg"
+          --source https://nuget.pkg.github.com/revealyan/index.json
+          --api-key ${{ secrets.GITHUB_TOKEN }}
+          --skip-duplicate
