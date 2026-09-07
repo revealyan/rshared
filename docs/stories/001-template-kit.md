@@ -2,7 +2,7 @@
 
 - Статус: backlog
 - Волна: пилот коллаб-протокола (первая)
-- Источник: `C:\devs\docs\idea-collab-protocol.md` (раздел «Пилот: rshared») + `C:\devs\docs\idea-code-strictness.md`
+- Источник: личный docs-репо — `idea-collab-protocol.md` (раздел «Пилот: rshared») + `idea-code-strictness.md`
 
 ## Цель
 
