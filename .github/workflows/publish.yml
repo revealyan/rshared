@@ -1,15 +1,22 @@
 name: publish packages
 
 # Публикация NuGet-пакетов rshared в GitHub Packages.
-# Триггер: тег v* (версия берётся из Directory.Build.props) или ручной запуск.
+# Триггер: пуш в main (каждый мердж = патч-релиз) или ручной запуск.
+# Версия: major.minor из version.json (правится в МР), патч = последняя
+# опубликованная в фиде версия серии + 1.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
   packages: write
+
+env:
+  FEED_OWNER: revealyan
+  FEED_USER: ${{ github.actor }}
+  FEED_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   publish:
@@ -21,8 +28,25 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Compute version
+        run: |
+          base=$(jq -r '.version' version.json)
+          max=-1
+          # версия общая на все пакеты — берём максимум патча по всем пяти в фиде
+          for pkg in rshared.authkit rshared.mediator rshared.orm rshared.orm.entityframeworkcore rshared.rabbitmq; do
+            resp=$(curl -sf -u "$FEED_USER:$FEED_TOKEN" \
+              "https://nuget.pkg.github.com/$FEED_OWNER/flatcontainer/$pkg/index.json" \
+              || echo '{"versions":[]}')
+            p=$(echo "$resp" | jq -r --arg base "$base" \
+              '[.versions[] | select(startswith($base + ".")) | split(".") | select(length == 3) | .[2] | select(test("^[0-9]+$")) | tonumber] | max // -1')
+            if [ "$p" -gt "$max" ]; then max=$p; fi
+          done
+          version="$base.$((max + 1))"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "Publishing $version"
+
       - name: Pack
-        run: dotnet pack RShared.slnx -c Release -o dist
+        run: dotnet pack RShared.slnx -c Release -o dist -p:Version="$VERSION"
 
       - name: Push to GitHub Packages
         run: >

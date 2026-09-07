@@ -7,7 +7,7 @@
 - `src/RShared.<Name>/` — один каталог = один NuGet-пакет, у каждого свой `README.md`.
 - `RShared.slnx` — решение в XML-формате, все проекты перечислены только в нём.
 - `Directory.Build.props` — общие свойства сборки: версия пакетов, автор, ссылка на репозиторий.
-- `.github/workflows/publish.yml` — публикация: тег `v*` → pack решения → GitHub Packages.
+- `.github/workflows/ci.yml` — сборка на PR и main; `publish.yml` — релиз: мердж в main → версия (major.minor из `version.json`, патч = последняя в фиде + 1) → push в GitHub Packages. Релизы только через МР, теги не используются.
 
 ## Конвенции кода
 

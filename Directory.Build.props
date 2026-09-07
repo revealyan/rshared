@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <Version>0.0.3</Version>
+    <!-- версия задаётся CI (publish.yml): major.minor из version.json + патч из фида -->
     <Authors>revealyan</Authors>
     <RepositoryUrl>https://github.com/revealyan/rshared</RepositoryUrl>
   </PropertyGroup>
