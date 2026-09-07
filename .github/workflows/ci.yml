@@ -1,7 +1,7 @@
 name: ci
 
-# Проверка PR и main: сборка решения.
-# Тестов пока нет — шаг dotnet test появится вместе с первым тестовым проектом.
+# Проверка PR и main: сборка и тесты — отдельными джобами,
+# чтобы в чеках PR были два независимых статуса build и test.
 on:
   pull_request:
   push:
@@ -21,4 +21,17 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Build
-        run: dotnet build RShared.slnx -c Release
+        run: dotnet build RShared.slnx -c Release --nologo
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test
+        run: dotnet test RShared.slnx -c Release --nologo

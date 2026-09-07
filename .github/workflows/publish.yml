@@ -4,13 +4,14 @@ name: publish packages
 # Триггер: пуш в main (каждый мердж = патч-релиз) или ручной запуск.
 # Версия: major.minor из version.json (правится в МР), патч = последняя
 # опубликованная в фиде версия серии + 1.
+# После успешной публикации — тег v{версия} на мердж-коммит.
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write  # тег релиза
   packages: write
 
 env:
@@ -54,3 +55,8 @@ jobs:
           --source https://nuget.pkg.github.com/revealyan/index.json
           --api-key ${{ secrets.GITHUB_TOKEN }}
           --skip-duplicate
+
+      - name: Tag release
+        run: |
+          git tag "v$VERSION" "$GITHUB_SHA"
+          git push origin "v$VERSION"
