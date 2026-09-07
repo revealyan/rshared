@@ -1,6 +1,6 @@
 # ROADMAP rshared
 
-Канон: `C:\devs\docs\idea-collab-protocol.md` (процесс) + `C:\devs\docs\idea-code-strictness.md` (машина).
+Канон: личный docs-репо — `idea-collab-protocol.md` (процесс) + `idea-code-strictness.md` (машина).
 
 ## Текущая волна
 

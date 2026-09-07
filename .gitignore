@@ -487,3 +487,6 @@ $RECYCLE.BIN/
 bin/
 # локальная паковка пакетов
 dist/
+
+# serena local cache
+.serena/
