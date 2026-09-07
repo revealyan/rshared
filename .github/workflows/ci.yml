@@ -1,18 +1,24 @@
 name: ci
 
-# Проверка PR и main: сборка и тесты — отдельными джобами,
-# чтобы в чеках PR были два независимых статуса build и test.
+# Один конвейер: PR — build и test; мердж в main — build → test → publish.
+# publish стартует строго после зелёных build/test и только на main.
+# Concurrency: новый прогон гасит предыдущий того же рефа — два слипшихся
+# мерджа не посчитают одну версию дважды (гонка по индексу фида).
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
-permissions:
-  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +32,8 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -35,3 +43,53 @@ jobs:
 
       - name: Test
         run: dotnet test RShared.slnx -c Release --nologo
+
+  publish:
+    needs: [build, test]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # тег релиза
+      packages: write  # публикация пакетов
+    env:
+      FEED_OWNER: revealyan
+      FEED_USER: ${{ github.actor }}
+      FEED_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Compute version
+        run: |
+          base=$(jq -r '.version' version.json)
+          max=-1
+          # версия общая на все пакеты — берём максимум патча по всем пяти в фиде
+          for pkg in rshared.authkit rshared.mediator rshared.orm rshared.orm.entityframeworkcore rshared.rabbitmq; do
+            resp=$(curl -sf -u "$FEED_USER:$FEED_TOKEN" \
+              "https://nuget.pkg.github.com/$FEED_OWNER/flatcontainer/$pkg/index.json" \
+              || echo '{"versions":[]}')
+            p=$(echo "$resp" | jq -r --arg base "$base" \
+              '[.versions[] | select(startswith($base + ".")) | split(".") | select(length == 3) | .[2] | select(test("^[0-9]+$")) | tonumber] | max // -1')
+            if [ "$p" -gt "$max" ]; then max=$p; fi
+          done
+          version="$base.$((max + 1))"
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "Publishing $version"
+
+      - name: Pack
+        run: dotnet pack RShared.slnx -c Release -o dist -p:Version="$VERSION" --nologo
+
+      - name: Push to GitHub Packages
+        run: >
+          dotnet nuget push "dist/*.nupkg"
+          --source https://nuget.pkg.github.com/revealyan/index.json
+          --api-key ${{ secrets.GITHUB_TOKEN }}
+          --skip-duplicate
+
+      - name: Tag release
+        run: |
+          git tag "v$VERSION" "$GITHUB_SHA"
+          git push origin "v$VERSION"
