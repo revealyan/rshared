@@ -192,6 +192,8 @@ public sealed class ExtensionsTests
 		var provider = services.BuildServiceProvider();
 		var google = provider.GetRequiredService<IOptionsFactory<GoogleOptions>>().Create("RShared.AuthKit.Google");
 		Assert.NotNull(google.Events.OnTicketReceived);
+		// без email-scope Google не отдаст email-клейм, а резолверы матчатся по нему
+		Assert.Contains("email", google.Scope);
 
 		var http = new DefaultHttpContext { RequestServices = provider };
 		accessor.HttpContext.Returns(http);
