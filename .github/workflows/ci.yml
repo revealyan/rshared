@@ -46,7 +46,9 @@ jobs:
 
   publish:
     needs: [build, test]
-    if: github.ref == 'refs/heads/main'
+    # публикуем из main и release-веток: main — основная линия,
+    # release/* — поддерживающие ветки старых серий
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')
     runs-on: ubuntu-latest
     permissions:
       contents: write  # тег релиза
@@ -100,6 +102,14 @@ jobs:
           dotnet nuget push "dist/*.nupkg"
           --source https://nuget.pkg.github.com/revealyan/index.json
           --api-key ${{ secrets.GITHUB_TOKEN }}
+          --skip-duplicate
+
+      - name: Push to nuget.org
+        if: env.NUGET_API_KEY != ''
+        run: >
+          dotnet nuget push "dist/*.nupkg"
+          --source https://api.nuget.org/v3/index.json
+          --api-key ${{ secrets.NUGET_API_KEY }}
           --skip-duplicate
 
       - name: Tag release
