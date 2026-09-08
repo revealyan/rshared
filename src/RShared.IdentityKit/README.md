@@ -1,12 +1,30 @@
 # RShared.IdentityKit
 
-Лаконичная замена ASP.NET Identity поверх [RShared.AuthKit](../RShared.AuthKit) и [RShared.Orm](../RShared.Orm): юзеры, пароли, одноразовые коды, связки внешних аккаунтов, инвалидация сессий. Не надстройка над Identity — своя реализация с оглядкой на коробку как на каталог концептов; из платформы берём только `PasswordHasher`.
+Готовая аутентификация и пользователи для проектов revealyan — своя лаконичная замена ASP.NET Identity. Два слоя в одном пакете:
+
+- **аутентификация** — cookie-сессии, вход по паролю / Google / TG-коду / email-коду;
+- **пользователи** — таблицы `users` / `external_accounts` / `one_time_codes` поверх RShared.Orm: регистрация, подтверждение email, сброс пароля, роли-клеймы, инвалидация сессий, встроенные страницы.
+
+Свой подход с оглядкой на коробку как на каталог концептов; из платформы берём только `PasswordHasher`.
 
 ## Граница
 
-- **AuthKit** — аутентификация: cookie-сессии, парольный вход, Google, TG-код, встроенная страница логина.
-- **IdentityKit** — юзеры и всё, что вокруг них: таблицы `users` / `external_accounts` / `one_time_codes`, хэши паролей, email-коды (вход/подтверждение/сброс), роли-клеймы, security stamp.
-- **Потребитель** — страница логина/регистрации/сброса (копируемые примеры ниже), доставка писем (`IEmailSender`), миграции, свои поля профиля (наследование юзера).
+Слой аутентификации доказывает, что человек владеет внешним аккаунтом, и выдаёт сессию. Слой пользователей решает, кто такой юзер и что он может. Потребитель делает остальное:
+
+```
+AddAuthKit                 аутентификация: сессии, пароль/Google/TG, страница логина
+AddIdentityKit<TUser>      юзеры: EF-реализации швов, коды email, stamp-валидатор
+потребитель                IEmailSender (доставка), миграции, поля профиля (наследование TUser)
+```
+
+Швы (потребитель может перебить своими до вызова `Add*`):
+
+```
+IAuthKitPasswordStore      проверка пароля (дефолт: EfPasswordStore + PasswordHasher)
+IAuthKitUserResolver       внешний id → юзер приложения (дефолт: EfUserResolver)
+IOneTimeCodeStore          одноразовые коды (дефолт: EF-стор; чистый AddAuthKit — память процесса)
+IEmailSender               доставка email-кодов — всегда потребитель
+```
 
 ## Подключение
 
@@ -30,61 +48,98 @@ builder.Services.AddPostgreSqlRepositories(
 builder.Services.AddAuthKit(builder.Configuration.GetSection("authkit"));
 builder.Services.AddIdentityKit<AppUser>(o =>
 {
-	o.CodeHashPepper = builder.Configuration["identitykit:pepper"]!;
+	o.CodeHashPepper = builder.Configuration["authkit:pepper"]!;
 });
-builder.Services.AddScoped<IEmailSender, SmtpEmailSender>(); // твоя доставка
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapAuthKit();   // вместо MapRazorPages
+app.MapAuthKit();   // встроенные страницы + MapRazorPages
 
-// миграции — у потребителя:
-// dotnet ef migrations add identitykit
+// миграции — у потребителя: dotnet ef migrations add authkit
 ```
 
-Порядок `AddAuthKit`/`AddIdentityKit` неважен: EF-стор кодов сам снимает дефолтный in-memory AuthKit.
+```json
+// appsettings.json — провайдеры включаются непустой секцией (пустой объект {} не включает)
+{
+  "authkit": {
+    "loginPageTitle": "Sign in",
+    "password":  { "sessionLifetime": "14.00:00:00" },
+    "google":    { "clientId": "...", "clientSecret": "...", "sessionLifetime": "30.00:00:00" },
+    "telegram":  { "codeLifetime": "00:10:00" }
+  }
+}
+```
+
+Порядок `AddAuthKit`/`AddIdentityKit` неважен: EF-стор кодов сам снимает дефолтный in-memory.
 Забытый `ApplyIdentityKit` упадёт внятной ошибкой реестра Orm при первом резолве репозитория.
 
-## Как работает
+## Встроенные страницы
 
-| фича | аналог в Identity | позиция |
-|---|---|---|
-| регистрация email+пароль, вход, смена | UserManager + SignInManager | взяли `PasswordHasher` из платформы; менеджеры — один сервис `IIdentityKit` |
-| вход по Google / TG-код | внешние схемы + UserLogins | обобщили: резолвер AuthKit поверх таблицы `external_accounts` |
-| вход по email-коду | нет из коробки (magic-link) | обобщили: одноразовый секрет, purpose=login |
-| связки внешних аккаунтов | UserLogins | взяли концепт: `(provider, external_id)` уникален |
-| link-by-email (A6) | не делает | опция `LinkByEmail`, выключена по умолчанию, только verified-провайдеры (Google) |
-| подтверждение email / сброс пароля | ConfirmEmailAsync / ResetPasswordAsync | обобщили: тот же одноразовый секрет, другой purpose |
-| инвалидация сессий | SecurityStamp + OnValidatePrincipal 30 мин | взяли концепт: reject-only, кэш `IMemoryCache` |
-| блокировка юзера | LockoutEnd (путает с брутфорсом) | разделили: поле `enabled`, проверка на входе и в валидаторе |
-| роли | Roles/UserRoles + RoleManager | выкинули менеджмент: список в колонке, role-клеймы в сессию |
+| путь | что делает |
+|---|---|
+| `/authkit/login` | пароль / TG-код / Google; ссылки на регистрацию и сброс |
+| `/authkit/register` | создание аккаунта + отправка кода подтверждения + автологин |
+| `/authkit/confirm` | ввод кода подтверждения email |
+| `/authkit/forgot` | запрос кода сброса (сообщение нейтрально — не раскрывает существование email) |
+| `/authkit/reset` | код + новый пароль; старые сессии режутся ротацией stamp |
 
-Одноразовые коды: 8 знаков base32, в базе — только **HMAC-SHA256 с перцем** (hex), не сам код; поиск по хэшу индексный, при утечке базы коды не брутфорсятся (перец в секретах приложения). Повторная выдача той же тройке `(канал, purpose, назначение)` аннулирует предыдущий код. Потребление — атомарный условный UPDATE: гонка двух одновременных вводов оставляет одного ни с чем.
+### Свои страницы вместо встроенных
 
-Сессия после любого входа: `NameIdentifier` = Guid юзера, `Name` = email, `Role`×N, `IdentityKitClaims.SecurityStamp`. Смена пароля/сброс регенерируют stamp — старые сессии режутся валидатором в пределах интервала кэша (30 мин по умолчанию), роли меняются со следующего входа.
+Встроенные страницы — тонкие обёртки (образец: `Pages/Login.cshtml` в исходниках пакета);
+всё, что они делают, доступно из кода. Подставить свои — три правила:
+
+1. Своя страница = обычная Razor-страница на **своём пути** (`/account/register`, что угодно),
+   которая инжектит `IAuthKit` / `IIdentityKit` и зовёт те же методы (примеры ниже).
+   Путь должен отличаться от `/authkit/*` — два разаряда на одном маршруте это конфликт роутинга.
+2. Редиректы «на логин» настраиваются `loginPath` в `AuthKitOption` — укажи свой путь,
+   и валидатор, и страницы сброса/подтверждения будут вести туда.
+3. Встроенные страницы при этом остаются достижимы по прямому URL — их нельзя отключить,
+   можно просто не ссылаться на них (ссылки живут только на самих встроенных страницах).
+   Полностью «убрать» — не ссылаться и закрыть пути rate limiter'ом при желании.
+
+Типовой сценарий: свои регистрация и логин (брендированные, с капчей) + встроенные
+confirm/forgot/reset как есть — достаточно `loginPath` и ссылок на `/authkit/*` из своих страниц.
 
 ## Использование
 
-Регистрация + подтверждение, вход по коду:
+Регистрация → подтверждение → вход по коду:
 
 ```csharp
 var result = await identityKit.RegisterAsync(model.Email, model.Password);
-// код подтверждения уже улетел через IEmailSender
+if (result.Status == RegisterStatus.DuplicateEmail) { /* показать ошибку */ }
 
+// код подтверждения уже улетел через IEmailSender
 await identityKit.ConfirmEmailAsync(email, code);
-await identityKit.SendEmailCodeAsync(email);      // молча, если аккаунта нет
+
+await identityKit.SendEmailCodeAsync(email);                 // молча, если аккаунта нет
 var ok = await identityKit.EmailCodeSignInAsync(email, code);
 ```
 
 Сброс пароля (не раскрывает существование email):
 
 ```csharp
-await identityKit.RequestPasswordResetAsync(email);            // без результата
+await identityKit.RequestPasswordResetAsync(email);          // без результата
 var ok = await identityKit.ResetPasswordAsync(email, code, newPassword);
 ```
 
-Шов доставки — тексты полностью твои:
+Смена пароля и блокировка:
+
+```csharp
+await identityKit.ChangePasswordAsync(userId, current, newPassword);
+await identityKit.SetEnabledAsync(userId, false);
+```
+
+Коды Telegram доставляет бот потребителя (у пакета своей связи с TG нет):
+
+```csharp
+// обработчик апдейтов бота (команда /login):
+var code = await authKit.IssueTelegramCodeAsync(message.From.Id);
+await bot.SendMessage(message.Chat.Id, $"Код для входа: {code}");
+```
+
+Доставка email — шов потребителя, тексты полностью твои:
 
 ```csharp
 public sealed class SmtpEmailSender : IEmailSender
@@ -99,43 +154,85 @@ public sealed class SmtpEmailSender : IEmailSender
 			_ => "Код",
 		};
 		// отправка письма: subject + код
+		return Task.CompletedTask;
 	}
 }
 ```
 
-Страницы (логин/регистрация/сброс) — тонкие обёртки над `IAuthKit`/`IIdentityKit`; логин уже есть у AuthKit (`/authkit/login`), свои страницы указываются через `loginPath`.
+## Провайдеры входа
+
+| провайдер | как работает | что нужно потребителю |
+|---|---|---|
+| password | `IAuthKitPasswordStore.ValidateAsync` → резолвер → сессия | ничего (EF-реализация в пакете) |
+| google | OAuth → `OnTicketReceived` → резолвер → сессия; scope `email` запрошен | clientId/secret, callback `/authkit/google-callback` |
+| telegram | бот потребителя просит код (`IAuthKit.IssueTelegramCodeAsync`) и доставляет юзеру | бот у потребителя |
+| email-код | `IIdentityKit.SendEmailCodeAsync` → код → `EmailCodeSignInAsync` | `IEmailSender` |
+
+## Пользователи
+
+| фича | аналог в Identity | позиция |
+|---|---|---|
+| регистрация, вход, смена пароля | UserManager + SignInManager | взяли `PasswordHasher`; менеджеры — один сервис `IIdentityKit` |
+| связки внешних аккаунтов | UserLogins | взяли концепт: `(provider, external_id)` уникален |
+| link-by-email | не делает | опция `LinkByEmail`, выключена по умолчанию, только verified-провайдеры |
+| подтверждение email / сброс пароля | ConfirmEmailAsync / ResetPasswordAsync | обобщили: одноразовый секрет с purpose |
+| инвалидация сессий | SecurityStamp + OnValidatePrincipal 30 мин | взяли концепт: reject-only, кэш `IMemoryCache` |
+| блокировка юзера | LockoutEnd (путает с брутфорсом) | разделили: поле `enabled` |
+| роли | Roles/UserRoles + RoleManager | выкинули менеджмент: список в колонке, role-клеймы в сессию |
+
+Одноразовые коды: 8 знаков base32, в базе — только **HMAC-SHA256 с перцем**, не сам код;
+повторная выдача той же тройке `(канал, purpose, назначение)` аннулирует предыдущий; потребление —
+атомарный условный UPDATE. Клеймы сессии: `NameIdentifier`, `Name`, `Role`×N,
+`IdentityKitClaims.SecurityStamp`. Смена/сброс пароля регенерируют stamp — старые сессии режутся
+в пределах интервала кэша (30 мин), роли меняются со следующего входа.
 
 ## Option
 
 ```csharp
-new IdentityKitOption
+new AuthKitOption          // слой аутентификации
 {
-	SessionScheme = AuthKitOption.DefaultScheme, // схема cookie AuthKit
-	CodeHashPepper = "...",                     // обязателен, в секретах
-	CodeLifetime = TimeSpan.FromMinutes(10),     // единый для всех purpose
-	SessionLifetime = TimeSpan.FromDays(14),     // вход по email-коду
+	Scheme = AuthKitOption.DefaultScheme,     // имя cookie-схемы
+	LoginPath = "/authkit/login",
+	DefaultReturnPath = "/",
+	Password = new PasswordOption(),           // null выключает
+	Google = null,                             // секция конфига включает
+	Telegram = new TelegramOption(),
+}
+
+new IdentityKitOption       // слой пользователей
+{
+	SessionScheme = AuthKitOption.DefaultScheme,
+	CodeHashPepper = "...",                   // обязателен, в секретах
+	CodeLifetime = TimeSpan.FromMinutes(10),
+	SessionLifetime = TimeSpan.FromDays(14),
 	SecurityStampValidationInterval = TimeSpan.FromMinutes(30),
-	CreateUsersOnFirstExternalSignIn = true,     // первый внешний вход создаёт юзера
-	LinkByEmail = false,                         // A6: линковка по verified email
+	CreateUsersOnFirstExternalSignIn = true,
+	LinkByEmail = false,
 }
 ```
 
 ## Ошибки
 
 - `CodeHashPepper is required` — перец пуст; HMAC-lookup без перца не работает, fail-fast.
-- `IdentityKit: IEmailSender is not registered` — вызван email-поток без доставки.
-- `AuthKit: the telegram provider is disabled` и прочие — см. README AuthKit.
+- `AuthKit: IEmailSender is not registered` — email-поток без доставки.
+- `AuthKit: google provider is enabled, but clientId/clientSecret are empty` — кривая секция конфига.
+- `AuthKit: the telegram provider is disabled` — `IssueTelegramCodeAsync` при выключенном провайдере.
 
 ## Что осознанно выкинули из ASP.NET Identity
 
-2FA/TOTP/recovery-коды; телефон/SMS; менеджмент ролей (RoleManager); брутфорс-счётчики AccessFailedCount/LockoutEnd — включи ASP.NET Core rate limiting (`AddRateLimiter`) на пути логина и выдачи кодов; `NormalizedEmail`/`NormalizedUserName`-дубли (email хранится канонически: trim + lower invariant); ConcurrencyStamp (оптимистичная конкуренция); двухтабличные Roles/UserRoles; таблицы UserClaims/UserTokens (клеймы — шов потребителя, токены → одноразовые секреты); Identity UI (готовые страницы); rehash при `SuccessRehashNeeded` (валидация — читающий шов, запись потребовала бы UoW).
+2FA/TOTP/recovery-коды; телефон/SMS; менеджмент ролей; брутфорс-счётчики (включи ASP.NET Core
+rate limiting `AddRateLimiter` на пути логина и выдачи кодов); NormalizedEmail-дубли (email
+хранится канонически: trim + lower); ConcurrencyStamp; двухтабличные Roles/UserRoles;
+UserClaims/UserTokens-таблицы; Identity UI как обязательный слой (готовые страницы есть, но всё
+доступно из кода); rehash при `SuccessRehashNeeded`.
 
 ## Ограничения
 
-- Перец обязателен; ротация перца сжигает активные коды (не пароли) — задокументировано, v1 без ротации.
-- Stamp-кэш per-node: инвалидация в пределах 30 минут на узел; смена ролей действует со следующего входа.
-- Повторная блокировка→разблокировка оживляет старую сессию, пока жив cookie.
+- Перец обязателен; ротация сжигает активные коды (не пароли).
+- Stamp-кэш per-node: инвалидация в пределах 30 минут на узел.
+- Блокировка→разблокировка оживляет старую сессию, пока жив cookie.
 - Один активный код на тройку (канал, purpose, назначение).
+- AuthKit не троттлит попытки входа — rate limiting на хосте.
 
 ## Регистрации
 
@@ -143,12 +240,14 @@ new IdentityKitOption
 
 | регистрация | lifetime | что даёт |
 |---|---|---|
-| `IdentityKitOption` | singleton | сконфигурированный option |
+| `AuthKitOption` / `IdentityKitOption` | singleton | сконфигурированные option |
+| `IAuthKit` → `AuthKitService` | scoped | вход/выход/челленджи |
+| cookie-схема + Google-схема | — | сессии и OAuth |
 | `IPasswordHasher<TUser>` → `PasswordHasher<TUser>` | singleton | PBKDF2 из shared framework |
-| `IAuthKitPasswordStore` → `EfPasswordStore<TUser>` | scoped | шов AuthKit: проверка пары |
-| `IAuthKitUserResolver` → `EfUserResolver<TUser>` | scoped | шов AuthKit: внешний id → юзер |
-| `IOneTimeCodeStore` → `EfOneTimeCodeStore` | scoped | коды в БД (снимает memory-дефолт AuthKit) |
+| `IAuthKitPasswordStore` → `EfPasswordStore<TUser>` | scoped | проверка пары |
+| `IAuthKitUserResolver` → `EfUserResolver<TUser>` | scoped | внешний id → юзер |
+| `IOneTimeCodeStore` → `EfOneTimeCodeStore` | scoped | коды в БД |
 | `IIdentityKit` → `IdentityKitService<TUser>` | scoped | потоки юзера |
 | `SecurityStampValidator<TUser>` (internal) | scoped | валидация сессий |
-| `PostConfigure<CookieAuthenticationOptions>` | — | крючок OnValidatePrincipal на схеме AuthKit |
+| `PostConfigure<CookieAuthenticationOptions>` | — | крючок OnValidatePrincipal |
 | `IEmailSender` | — | НЕ регистрируется пакетом — шов потребителя |
