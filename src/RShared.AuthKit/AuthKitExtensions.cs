@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Builder;
@@ -81,6 +79,7 @@ public static class AuthKitExtensions
 	/// </summary>
 	public static WebApplication MapAuthKit(this WebApplication app)
 	{
+		// Stryker disable once Statement : маппинг страницы логина, в юнит-хосте без ApplicationParts endpoints пустые
 		app.MapRazorPages();
 		return app;
 	}
@@ -97,6 +96,7 @@ public static class AuthKitExtensions
 
 		// built-in login pages need the Razor Pages runtime; the call is additive,
 		// a consumer configuring Razor Pages itself is free to do it again
+		// Stryker disable once Statement : фреймворковая регистрация, эффект виден только при рендере страницы в реальном хосте
 		services.AddRazorPages();
 
 		services.AddAuthentication(option.Scheme)
@@ -109,30 +109,26 @@ public static class AuthKitExtensions
 					?? TimeSpan.FromDays(14);
 			});
 
-		if (option.Google is not null)
+		if (option.Google is { } googleOptions)
 		{
 			services.AddAuthentication()
 				.AddGoogle(AuthKitService.GoogleScheme, o =>
 				{
-					o.ClientId = option.Google.ClientId;
-					o.ClientSecret = option.Google.ClientSecret;
-					o.CallbackPath = option.Google.CallbackPath;
+					o.ClientId = googleOptions.ClientId;
+					o.ClientSecret = googleOptions.ClientSecret;
+					o.CallbackPath = googleOptions.CallbackPath;
 					o.Events.OnTicketReceived = async context =>
 					{
 						// a proven Google identity → the consumer resolver → a session in the main scheme
-						var externalId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-						if (externalId is null)
+						var identity = AuthKitService.MapGoogleTicket(context.Principal);
+						if (identity is null)
 						{
 							context.Fail("AuthKit: the Google ticket has no name identifier claim");
 							return;
 						}
 
-						var email = context.Principal?.FindFirst(ClaimTypes.Email)?.Value;
-						var name = context.Principal?.FindFirst(ClaimTypes.Name)?.Value;
-						var identity = new ExternalIdentity("google", externalId, email, name);
-
 						var kit = (AuthKitService)context.HttpContext.RequestServices.GetRequiredService<IAuthKit>();
-						if (!await kit.ResolveExternalSignInAsync(identity, TimeSpan.FromDays(14)))
+						if (!await kit.ResolveExternalSignInAsync(identity, googleOptions.SessionLifetime))
 						{
 							context.Fail("AuthKit: the Google identity is not allowed to sign in");
 							return;

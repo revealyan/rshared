@@ -9,15 +9,26 @@ namespace RShared.AuthKit;
 /// </summary>
 public sealed class MemoryTgCodeStore : ITgCodeStore
 {
+	// base32 без похожих символов (нет 0/1/I/L/O/U): 8 знаков ≈ 10^12 комбинаций,
+	// перебор снаружи безо всякого rate limit становится бессмысленным
+	private const string Alphabet = "23456789ABCDEFGHJKMNPQRSTVWXYZ";
+
 	private readonly object _gate = new();
 	private readonly Dictionary<string, (string UserId, DateTimeOffset ExpiresAt)> _codes = [];
 
 	public Task<string> IssueAsync(string telegramUserId, TimeSpan lifetime)
 	{
-		// six digits: enough for a short lived single use code, no ambiguous characters
-		var code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+		var code = string.Create(8, (string?)null, static (span, _) =>
+		{
+			for (var i = 0; i < span.Length; i++)
+			{
+				span[i] = Alphabet[RandomNumberGenerator.GetInt32(Alphabet.Length)];
+			}
+		});
+
 		lock (_gate)
 		{
+			// Stryker disable Statement : чистка протухших кодов не видна снаружи, это защита от роста словаря
 			DropExpired(DateTimeOffset.UtcNow);
 			_codes[code] = (telegramUserId, DateTimeOffset.UtcNow.Add(lifetime));
 		}
@@ -36,6 +47,7 @@ public sealed class MemoryTgCodeStore : ITgCodeStore
 
 	private void DropExpired(DateTimeOffset now)
 	{
+		// Stryker disable Equality : граница <= vs < — дегенератный нулевой TTL, недоказуемо стабильным тестом
 		foreach (var key in _codes.Where(kv => kv.Value.ExpiresAt <= now).Select(kv => kv.Key).ToArray())
 		{
 			_codes.Remove(key);

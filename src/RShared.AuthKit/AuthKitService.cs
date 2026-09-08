@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 
@@ -46,8 +45,12 @@ internal sealed class AuthKitService(
 
 	public Task<string> IssueTelegramCodeAsync(long telegramUserId)
 	{
-		var lifetime = option.Telegram?.CodeLifetime ?? TimeSpan.FromMinutes(10);
-		return tgCodes.IssueAsync(telegramUserId.ToString(CultureInfo.InvariantCulture), lifetime);
+		if (option.Telegram is null)
+		{
+			throw new InvalidOperationException("AuthKit: the telegram provider is disabled");
+		}
+
+		return tgCodes.IssueAsync(telegramUserId.ToString(CultureInfo.InvariantCulture), option.Telegram.CodeLifetime);
 	}
 
 	public async Task<bool> TelegramSignInAsync(string code)
@@ -71,7 +74,12 @@ internal sealed class AuthKitService(
 	public Task ChallengeGoogleAsync(string returnPath)
 	{
 		var http = Http ?? throw new InvalidOperationException("AuthKit: no http context for a Google challenge");
-		return http.ChallengeAsync(GoogleScheme, new AuthenticationProperties { RedirectUri = returnPath });
+
+		// guard от open redirect: после колбэка Google уходим только в локальный путь
+		return http.ChallengeAsync(GoogleScheme, new AuthenticationProperties
+		{
+			RedirectUri = IsLocalUrl(returnPath) ? returnPath : option.DefaultReturnPath,
+		});
 	}
 
 	public async Task SignInAsync(AuthKitUser user, TimeSpan? sessionLifetime = null)
@@ -113,5 +121,39 @@ internal sealed class AuthKitService(
 
 		await SignInAsync(user, sessionLifetime);
 		return true;
+	}
+
+	/// <summary>
+	/// Google ticket → external identity, null when the ticket has no name identifier claim.
+	/// </summary>
+	internal static ExternalIdentity? MapGoogleTicket(ClaimsPrincipal? principal)
+	{
+		var externalId = principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		if (externalId is null)
+		{
+			return null;
+		}
+
+		return new ExternalIdentity("google", externalId,
+			principal?.FindFirst(ClaimTypes.Email)?.Value,
+			principal?.FindFirst(ClaimTypes.Name)?.Value);
+	}
+
+	/// <summary>
+	/// Local url check (the same shape as Url.IsLocalUrl): only app relative paths pass
+	/// </summary>
+	internal static bool IsLocalUrl(string url)
+	{
+		if (string.IsNullOrEmpty(url))
+		{
+			return false;
+		}
+
+		if (url[0] == '/' && (url.Length == 1 || (url[1] != '/' && url[1] != '\\')))
+		{
+			return true;
+		}
+
+		return url.Length > 1 && url[0] == '~' && url[1] == '/';
 	}
 }

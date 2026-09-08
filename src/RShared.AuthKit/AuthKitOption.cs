@@ -78,6 +78,11 @@ public class GoogleOption
 	/// OAuth callback path, must match the Google application configuration
 	/// </summary>
 	public string CallbackPath { get; set; } = "/authkit/google-callback";
+
+	/// <summary>
+	/// Lifetime of the issued session for Google sign ins
+	/// </summary>
+	public TimeSpan SessionLifetime { get; set; } = TimeSpan.FromDays(14);
 }
 
 /// <summary>

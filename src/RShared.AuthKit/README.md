@@ -29,13 +29,13 @@ app.MapAuthKit();   // вместо MapRazorPages: встроенная стра
 ```
 
 ```json
-// appsettings.json — провайдеры включаются присутствием секций
+// appsettings.json — провайдеры включаются непустой секцией (пустой объект {} не включает)
 {
   "authkit": {
-    "loginPath": "/authkit/login",
-    "password":  {},
-    "google":    { "clientId": "...", "clientSecret": "..." },
-    "telegram":  { "codeLifetimeMinutes": 10 }
+    "loginPageTitle": "Sign in",
+    "password":  { "sessionLifetime": "14.00:00:00" },
+    "google":    { "clientId": "...", "clientSecret": "...", "sessionLifetime": "30.00:00:00" },
+    "telegram":  { "codeLifetime": "00:10:00" }
   }
 }
 ```
@@ -60,7 +60,7 @@ var code = await authKit.IssueTelegramCodeAsync(message.From.Id);
 await bot.SendMessage(message.Chat.Id, $"Код для входа: {code}");
 ```
 
-Код шестизначный, одноразовый, с TTL (по умолчанию 10 минут). Введённый на странице логина код создаёт сессию с `ExternalIdentity("telegram", <id>)`.
+Код — 8 знаков base32 без похожих символов (без `0/1/I/L/O/U`, ~10¹² комбинаций), одноразовый, с TTL (по умолчанию 10 минут). Такой запас энтропии закрывает перебор кода через форму даже без rate limit. Введённый на странице логина код создаёт сессию с `ExternalIdentity("telegram", <id>)`.
 
 ## Свои страницы вместо встроенной
 
@@ -69,5 +69,5 @@ await bot.SendMessage(message.Chat.Id, $"Код для входа: {code}");
 ## Ограничения скелета
 
 - коды Telegram по умолчанию в памяти процесса (`MemoryTgCodeStore`) — для много-нодового деплоя зарегистрировать свою реализацию `ITgCodeStore` до `AddAuthKit`;
-- сессия Google — фикс 14 дней;
+- AuthKit не троттлит попытки входа и выдачу кодов — в продакшене включи ASP.NET Core rate limiting (`AddRateLimiter`) на путь логина;
 - Apple не заведён (нужен платный dev-аккаунт и ревью) — добавить по мере надобности.

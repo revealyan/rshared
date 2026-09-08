@@ -8,6 +8,7 @@
     <Project Path="src/RShared.RabbitMq/RShared.RabbitMq.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/RShared.AuthKit.Tests/RShared.AuthKit.Tests.csproj" />
     <Project Path="tests/RShared.Mediator.Tests/RShared.Mediator.Tests.csproj" />
     <Project Path="tests/RShared.Orm.EntityFrameworkCore.Tests/RShared.Orm.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/RShared.Orm.PostgreSql.Tests/RShared.Orm.PostgreSql.Tests.csproj" />
