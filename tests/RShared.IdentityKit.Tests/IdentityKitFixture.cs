@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NSubstitute;
-using RShared.AuthKit;
 using RShared.IdentityKit;
 using RShared.Orm.EntityFrameworkCore;
 

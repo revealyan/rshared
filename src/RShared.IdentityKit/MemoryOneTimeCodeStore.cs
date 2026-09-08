@@ -1,4 +1,4 @@
-namespace RShared.AuthKit;
+namespace RShared.IdentityKit;
 
 /// <summary>
 /// Single use codes with a TTL, kept in process memory.

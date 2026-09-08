@@ -4,9 +4,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using RShared.AuthKit;
-using NSubstitute;
 using RShared.IdentityKit;
+using NSubstitute;
 using RShared.Orm;
 using RShared.Orm.EntityFrameworkCore;
 

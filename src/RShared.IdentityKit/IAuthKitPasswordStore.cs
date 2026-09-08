@@ -1,4 +1,4 @@
-namespace RShared.AuthKit;
+namespace RShared.IdentityKit;
 
 /// <summary>
 /// Consumer seam: validates a login and a password pair against the consumer storage.

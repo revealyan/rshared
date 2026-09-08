@@ -3,7 +3,6 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage;
-using RShared.AuthKit;
 using RShared.IdentityKit;
 using RShared.Orm;
 using RShared.Orm.EntityFrameworkCore;

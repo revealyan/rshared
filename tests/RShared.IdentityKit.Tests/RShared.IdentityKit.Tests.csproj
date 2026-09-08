@@ -14,7 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.1" />
-    <!-- только для двух модельных тестов на Npgsql без сервера -->
+    <!-- только для модельных тестов identity-слоя на Npgsql без сервера -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageReference Include="NSubstitute" Version="6.2.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -25,7 +25,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\RShared.AuthKit\RShared.AuthKit.csproj" />
     <ProjectReference Include="..\..\src\RShared.IdentityKit\RShared.IdentityKit.csproj" />
     <ProjectReference Include="..\..\src\RShared.Orm.EntityFrameworkCore\RShared.Orm.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\..\src\RShared.Orm\RShared.Orm.csproj" />

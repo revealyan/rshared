@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using RShared.IdentityKit;
 
 namespace RShared.IdentityKit.Tests;
 

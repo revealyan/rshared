@@ -1,7 +1,7 @@
 using Xunit;
-using RShared.AuthKit;
+using RShared.IdentityKit;
 
-namespace RShared.AuthKit.Tests;
+namespace RShared.IdentityKit.Tests;
 
 /// <summary>
 /// Хранилище одноразовых кодов: формат, одноразовость, TTL,

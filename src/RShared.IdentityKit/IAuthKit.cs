@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-namespace RShared.AuthKit;
+namespace RShared.IdentityKit;
 
 /// <summary>
 /// External identity proven by a provider: a provider name and an account id inside it.

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace RShared.AuthKit.Pages;
+namespace RShared.IdentityKit.Pages;
 
 /// <summary>
 /// Built-in login page: password form, Telegram code form, Google challenge.

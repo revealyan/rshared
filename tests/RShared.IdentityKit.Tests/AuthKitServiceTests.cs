@@ -4,9 +4,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
-using RShared.AuthKit;
+using RShared.IdentityKit;
 
-namespace RShared.AuthKit.Tests;
+namespace RShared.IdentityKit.Tests;
 
 /// <summary>
 /// Сервис входа: пароль, коды Telegram, Google-челлендж, клеймы и времена жизни сессий

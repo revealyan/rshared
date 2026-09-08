@@ -1,4 +1,4 @@
-namespace RShared.AuthKit;
+namespace RShared.IdentityKit;
 
 /// <summary>
 /// What the code proves; a store never mixes codes of different purposes.

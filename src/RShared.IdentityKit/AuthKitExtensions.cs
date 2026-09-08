@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace RShared.AuthKit;
+namespace RShared.IdentityKit;
 
 /// <summary>
 /// Dependency injection and pipeline extensions
@@ -117,8 +117,6 @@ public static class AuthKitExtensions
 					o.ClientId = googleOptions.ClientId;
 					o.ClientSecret = googleOptions.ClientSecret;
 					o.CallbackPath = googleOptions.CallbackPath;
-					// без явного scope Google не отдаёт email-клейм, а резолвер по нему матчится
-					o.Scope.Add("email");
 					o.Events.OnTicketReceived = async context =>
 					{
 						// a proven Google identity → the consumer resolver → a session in the main scheme

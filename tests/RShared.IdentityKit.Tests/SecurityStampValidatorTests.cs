@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using NSubstitute;
-using RShared.IdentityKit;
 using RShared.Orm;
 
 using Xunit;

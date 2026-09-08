@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using RShared.AuthKit;
 using RShared.IdentityKit;
 
 using Xunit;

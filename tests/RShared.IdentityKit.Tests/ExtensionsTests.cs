@@ -11,9 +11,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NSubstitute;
-using RShared.AuthKit;
+using RShared.IdentityKit;
 
-namespace RShared.AuthKit.Tests;
+namespace RShared.IdentityKit.Tests;
 
 /// <summary>
 /// Регистрации и биндинг конфига: провайдеры включаются содержимым секций
