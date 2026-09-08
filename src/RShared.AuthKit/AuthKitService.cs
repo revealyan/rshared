@@ -14,7 +14,7 @@ internal sealed class AuthKitService(
 	IAuthKitUserResolver userResolver,
 	IAuthKitPasswordStore? passwordStore,
 	AuthKitOption option,
-	ITgCodeStore tgCodes) : IAuthKit
+	IOneTimeCodeStore codes) : IAuthKit
 {
 	internal const string GoogleScheme = "RShared.AuthKit.Google";
 
@@ -50,12 +50,13 @@ internal sealed class AuthKitService(
 			throw new InvalidOperationException("AuthKit: the telegram provider is disabled");
 		}
 
-		return tgCodes.IssueAsync(telegramUserId.ToString(CultureInfo.InvariantCulture), option.Telegram.CodeLifetime);
+		return codes.IssueAsync(OneTimeCodeChannel.Telegram, OneTimeCodePurpose.Login,
+			telegramUserId.ToString(CultureInfo.InvariantCulture), option.Telegram.CodeLifetime);
 	}
 
 	public async Task<bool> TelegramSignInAsync(string code)
 	{
-		var telegramUserId = await tgCodes.TakeAsync(code.Trim());
+		var telegramUserId = await codes.TakeAsync(OneTimeCodeChannel.Telegram, OneTimeCodePurpose.Login, code.Trim());
 		if (telegramUserId is null)
 		{
 			return false;
@@ -90,6 +91,12 @@ internal sealed class AuthKitService(
 		if (user.DisplayName is not null)
 		{
 			claims.Add(new(ClaimTypes.Name, user.DisplayName));
+		}
+
+		// клеймы резолвера (роли, security stamp) идут в сессию как есть
+		if (user.Claims is { } extra)
+		{
+			claims.AddRange(extra);
 		}
 
 		var props = new AuthenticationProperties { IsPersistent = true };

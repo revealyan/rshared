@@ -140,13 +140,13 @@ public static class AuthKitExtensions
 		}
 
 		services.TryAddSingleton(option);
-		services.TryAddSingleton<ITgCodeStore, MemoryTgCodeStore>();
+		services.TryAddSingleton<IOneTimeCodeStore, MemoryOneTimeCodeStore>();
 		services.TryAddScoped<IAuthKit>(sp => new AuthKitService(
 			sp.GetRequiredService<IHttpContextAccessor>(),
 			sp.GetRequiredService<IAuthKitUserResolver>(),
 			sp.GetService<IAuthKitPasswordStore>(),
 			sp.GetRequiredService<AuthKitOption>(),
-			sp.GetRequiredService<ITgCodeStore>()));
+			sp.GetRequiredService<IOneTimeCodeStore>()));
 
 		return services;
 	}

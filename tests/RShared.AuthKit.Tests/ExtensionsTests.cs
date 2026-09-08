@@ -107,6 +107,7 @@ public sealed class ExtensionsTests
 		var option = new AuthKitOption();
 
 		Assert.Equal("RShared.AuthKit", option.Scheme);
+		Assert.Equal("RShared.AuthKit", AuthKitOption.DefaultScheme);
 		Assert.Equal("/authkit/login", option.LoginPath);
 		Assert.Equal("/", option.DefaultReturnPath);
 		Assert.Equal("Sign in", option.LoginPageTitle);
@@ -316,14 +317,14 @@ public sealed class ExtensionsTests
 
 		var provider = services.BuildServiceProvider();
 		using var scope = provider.CreateScope();
-		Assert.IsType<MemoryTgCodeStore>(scope.ServiceProvider.GetRequiredService<ITgCodeStore>());
+		Assert.IsType<MemoryOneTimeCodeStore>(scope.ServiceProvider.GetRequiredService<IOneTimeCodeStore>());
 		Assert.NotNull(scope.ServiceProvider.GetRequiredService<IAuthKit>());
 	}
 
 	[Fact]
 	public void Consumer_code_store_is_not_replaced()
 	{
-		var codes = Substitute.For<ITgCodeStore>();
+		var codes = Substitute.For<IOneTimeCodeStore>();
 		var services = new ServiceCollection();
 		services.AddScoped(_ => Substitute.For<IAuthKitUserResolver>());
 		services.AddSingleton(codes);
@@ -332,6 +333,6 @@ public sealed class ExtensionsTests
 
 		// регистрация ДО AddAuthKit: TryAdd не должен перебивать её
 		var provider = services.BuildServiceProvider();
-		Assert.Same(codes, provider.GetRequiredService<ITgCodeStore>());
+		Assert.Same(codes, provider.GetRequiredService<IOneTimeCodeStore>());
 	}
 }

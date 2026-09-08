@@ -20,7 +20,7 @@ public sealed class AuthKitServiceTests
 		Action<AuthKitOption>? configure = null,
 		IAuthKitUserResolver? resolver = null,
 		IAuthKitPasswordStore? store = null,
-		ITgCodeStore? codes = null)
+		IOneTimeCodeStore? codes = null)
 	{
 		var option = new AuthKitOption();
 		configure?.Invoke(option);
@@ -36,7 +36,7 @@ public sealed class AuthKitServiceTests
 			resolver ?? Substitute.For<IAuthKitUserResolver>(),
 			store,
 			option,
-			codes ?? Substitute.For<ITgCodeStore>());
+			codes ?? Substitute.For<IOneTimeCodeStore>());
 
 		return (kit, auth, http);
 	}
@@ -50,7 +50,7 @@ public sealed class AuthKitServiceTests
 			Substitute.For<IAuthKitUserResolver>(),
 			null,
 			new AuthKitOption(),
-			Substitute.For<ITgCodeStore>());
+			Substitute.For<IOneTimeCodeStore>());
 	}
 
 	[Fact]
@@ -138,8 +138,8 @@ public sealed class AuthKitServiceTests
 	{
 		var resolver = Substitute.For<IAuthKitUserResolver>();
 		resolver.ResolveAsync(Arg.Any<ExternalIdentity>()).Returns(new AuthKitUser("u9"));
-		var codes = Substitute.For<ITgCodeStore>();
-		codes.TakeAsync("ABCD2345").Returns("42");
+		var codes = Substitute.For<IOneTimeCodeStore>();
+		codes.TakeAsync(OneTimeCodeChannel.Telegram, OneTimeCodePurpose.Login, "ABCD2345").Returns("42");
 		var (kit, auth, http) = Build(o => o.Telegram = new TelegramOption { SessionLifetime = TimeSpan.FromDays(1) },
 			resolver: resolver, codes: codes);
 
@@ -156,8 +156,8 @@ public sealed class AuthKitServiceTests
 	[Fact]
 	public async Task TelegramSignIn_rejects_unknown_code()
 	{
-		var codes = Substitute.For<ITgCodeStore>();
-		codes.TakeAsync(Arg.Any<string>()).Returns((string?)null);
+		var codes = Substitute.For<IOneTimeCodeStore>();
+		codes.TakeAsync(Arg.Any<OneTimeCodeChannel>(), Arg.Any<OneTimeCodePurpose>(), Arg.Any<string>()).Returns((string?)null);
 		var resolver = Substitute.For<IAuthKitUserResolver>();
 		var (kit, auth, _) = Build(resolver: resolver, codes: codes);
 
@@ -170,8 +170,8 @@ public sealed class AuthKitServiceTests
 	[Fact]
 	public async Task TelegramSignIn_rejects_when_resolver_denies()
 	{
-		var codes = Substitute.For<ITgCodeStore>();
-		codes.TakeAsync("ABCD2345").Returns("42");
+		var codes = Substitute.For<IOneTimeCodeStore>();
+		codes.TakeAsync(OneTimeCodeChannel.Telegram, OneTimeCodePurpose.Login, "ABCD2345").Returns("42");
 		var resolver = Substitute.For<IAuthKitUserResolver>();
 		var (kit, auth, _) = Build(resolver: resolver, codes: codes);
 
@@ -183,8 +183,8 @@ public sealed class AuthKitServiceTests
 	[Fact]
 	public async Task TelegramSignIn_uses_default_lifetime_when_provider_disabled()
 	{
-		var codes = Substitute.For<ITgCodeStore>();
-		codes.TakeAsync("ABCD2345").Returns("7");
+		var codes = Substitute.For<IOneTimeCodeStore>();
+		codes.TakeAsync(OneTimeCodeChannel.Telegram, OneTimeCodePurpose.Login, "ABCD2345").Returns("7");
 		var resolver = Substitute.For<IAuthKitUserResolver>();
 		resolver.ResolveAsync(Arg.Any<ExternalIdentity>()).Returns(new AuthKitUser("u7"));
 		var (kit, auth, _) = Build(o => o.Telegram = null, resolver: resolver, codes: codes);
@@ -200,24 +200,24 @@ public sealed class AuthKitServiceTests
 	[Fact]
 	public async Task IssueTelegramCode_passes_user_and_lifetime()
 	{
-		var codes = Substitute.For<ITgCodeStore>();
+		var codes = Substitute.For<IOneTimeCodeStore>();
 		var (kit, _, _) = Build(o => o.Telegram = new TelegramOption { CodeLifetime = TimeSpan.FromMinutes(5) },
 			codes: codes);
 
 		await kit.IssueTelegramCodeAsync(777);
 
-		await codes.Received(1).IssueAsync("777", TimeSpan.FromMinutes(5));
+		await codes.Received(1).IssueAsync(OneTimeCodeChannel.Telegram, OneTimeCodePurpose.Login, "777", TimeSpan.FromMinutes(5));
 	}
 
 	[Fact]
 	public async Task IssueTelegramCode_throws_when_provider_disabled()
 	{
-		var codes = Substitute.For<ITgCodeStore>();
+		var codes = Substitute.For<IOneTimeCodeStore>();
 		var (kit, _, _) = Build(o => o.Telegram = null, codes: codes);
 
 		var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => kit.IssueTelegramCodeAsync(777));
 		Assert.Contains("disabled", ex.Message);
-		await codes.DidNotReceiveWithAnyArgs().IssueAsync(Arg.Any<string>(), Arg.Any<TimeSpan>());
+		await codes.DidNotReceiveWithAnyArgs().IssueAsync(Arg.Any<OneTimeCodeChannel>(), Arg.Any<OneTimeCodePurpose>(), Arg.Any<string>(), Arg.Any<TimeSpan>());
 	}
 
 	[Fact]
@@ -230,6 +230,25 @@ public sealed class AuthKitServiceTests
 		await auth.Received(1).SignInAsync(http, Scheme,
 			Arg.Is<ClaimsPrincipal>(p => p.FindFirst(ClaimTypes.NameIdentifier)!.Value == "u2"
 				&& p.FindFirst(ClaimTypes.Name) == null),
+			Arg.Is<AuthenticationProperties>(p => p.IsPersistent && p.ExpiresUtc == null));
+	}
+
+	[Fact]
+	public async Task SignInAsync_appends_resolver_claims()
+	{
+		var (kit, auth, http) = Build();
+
+		await kit.SignInAsync(new AuthKitUser("u3", "Alice",
+		[
+			new Claim(ClaimTypes.Role, "admin"),
+			new Claim("custom", "s1"),
+		]));
+
+		await auth.Received(1).SignInAsync(http, Scheme,
+			Arg.Is<ClaimsPrincipal>(p => p.FindFirst(ClaimTypes.NameIdentifier)!.Value == "u3"
+				&& p.FindFirst(ClaimTypes.Name)!.Value == "Alice"
+				&& p.FindFirst(ClaimTypes.Role)!.Value == "admin"
+				&& p.FindFirst("custom")!.Value == "s1"),
 			Arg.Is<AuthenticationProperties>(p => p.IsPersistent && p.ExpiresUtc == null));
 	}
 
