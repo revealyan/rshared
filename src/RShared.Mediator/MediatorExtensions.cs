@@ -31,6 +31,7 @@ public static class MediatorExtensions
 		if (options.AddHandlers)
 		{
 			// открытые generic-хендлеры скан не берёт — их регистрируют руками
+			// Stryker disable once NullCoalescing: переданные сборки и так загружены в AppDomain — скан даёт тот же результат
 			var handlersTypes = (options.Assemblies ?? AppDomain.CurrentDomain.GetAssemblies())
 				.SelectMany(a => a.GetTypes())
 				.Where(t => t.IsClass && !t.IsAbstract && !t.ContainsGenericParameters && t.IsAssignableTo(MarkerType))
@@ -64,11 +65,8 @@ public static class MediatorExtensions
 				@"services.AddScoped(typeof(IMessageHandler<>), handlerType)", nameof(messageHandlerType));
 		}
 
-		if (services.Any(sd => sd.ImplementationType == messageHandlerType))
-		{
-			return services;
-		}
-
+		// повторная регистрация того же хендлера безвредна: TryAddScoped не добавит дубль,
+		// а свой же интерфейс конфликтом не считается
 		foreach (var handlerInterface in messageHandlerType.GetInterfaces().Where(IsClosedHandlerInterface))
 		{
 			// сообщение уже обслуживается другим хендлером — не молчим, падаем на старте

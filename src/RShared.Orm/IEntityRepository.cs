@@ -1,4 +1,4 @@
-﻿namespace RShared.Orm;
+namespace RShared.Orm;
 
 /// <summary>
 /// Entity repository interface
@@ -7,12 +7,6 @@
 public interface IEntityRepository<TEntity>
 	where TEntity : class
 {
-	/// <summary>
-	/// Create IQueryable for entity
-	/// </summary>
-	/// <returns>IQueryable instance</returns>
-	public IQueryable<TEntity> Query();
-
 	/// <summary>
 	/// Insert entity to repository
 	/// </summary>
@@ -33,13 +27,13 @@ public interface IEntityRepository<TEntity>
 	/// <summary>
 	/// Insert if not preset, or update entity
 	/// </summary>
-	/// <param name="entity">Entoty</param>
+	/// <param name="entity">Entity</param>
 	/// <param name="cancellationToken">Operation cancellation token</param>
 	/// <returns>Updated entity</returns>
 	public Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default);
 
 	/// <summary>
-	/// Deleted entity from repository, if it present
+	/// Deletes entity from repository, if it present
 	/// </summary>
 	/// <param name="entity">Entity</param>
 	/// <param name="cancellationToken">Operation cancellation token</param>
