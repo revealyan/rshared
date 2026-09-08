@@ -1,4 +1,4 @@
-namespace RShared.AuthKit;
+namespace RShared.IdentityKit;
 
 /// <summary>
 /// Consumer seam: maps a proven external identity to an application user.

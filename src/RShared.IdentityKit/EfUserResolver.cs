@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using RShared.AuthKit;
+using RShared.IdentityKit;
 using RShared.Orm;
 using RShared.Orm.EntityFrameworkCore;
 

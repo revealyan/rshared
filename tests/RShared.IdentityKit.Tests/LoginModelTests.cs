@@ -3,10 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Routing;
 using NSubstitute;
-using RShared.AuthKit;
-using RShared.AuthKit.Pages;
+using RShared.IdentityKit;
+using RShared.IdentityKit.Pages;
 
-namespace RShared.AuthKit.Tests;
+namespace RShared.IdentityKit.Tests;
 
 /// <summary>
 /// Встроенная страница логина: редиректы только в локальные пути, ошибки провайдеров

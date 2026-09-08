@@ -1,6 +1,6 @@
 @page "/authkit/login"
-@model RShared.AuthKit.Pages.LoginModel
-@inject Microsoft.Extensions.Options.IOptions<RShared.AuthKit.AuthKitOption> AuthKit
+@model RShared.IdentityKit.Pages.LoginModel
+@inject Microsoft.Extensions.Options.IOptions<RShared.IdentityKit.AuthKitOption> AuthKit
 
 <!DOCTYPE html>
 <html lang="en">
@@ -19,6 +19,8 @@
 		button[type=submit] { background: #1a73e8; color: #fff; }
 		.authkit-google { background: #fff; border: 1px solid #dadce0; width: 100%; }
 		.authkit-separator { color: #888; font-size: 12px; text-align: center; margin: 12px 0; }
+		.authkit-links { display: flex; justify-content: space-between; font-size: 13px; margin-top: 16px; }
+		.authkit-links a { color: #1a73e8; text-decoration: none; }
 	</style>
 </head>
 <body>
@@ -58,6 +60,11 @@
 				<button type="submit">Sign in</button>
 			</form>
 		}
+
+		<div class="authkit-links">
+			<a href="/authkit/register">Create account</a>
+			<a href="/authkit/forgot">Forgot password?</a>
+		</div>
 	</div>
 </body>
 </html>

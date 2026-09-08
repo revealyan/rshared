@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using RShared.AuthKit;
-using RShared.Orm.EntityFrameworkCore;
 using RShared.IdentityKit;
+using RShared.Orm.EntityFrameworkCore;
 using RShared.Orm;
 
 using Xunit;

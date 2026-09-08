@@ -68,7 +68,7 @@ jobs:
           max=-1
           # максимум патча по фиду И по git-тегам: flat-container индекс фида
           # обновляется с лагом (гонка на слипшихся мерджах), теги — моментально.
-          for pkg in rshared.authkit rshared.identitykit rshared.mediator rshared.orm rshared.orm.entityframeworkcore rshared.orm.postgresql rshared.rabbitmq; do
+          for pkg in rshared.identitykit rshared.mediator rshared.orm rshared.orm.entityframeworkcore rshared.orm.postgresql rshared.rabbitmq; do
             code=$(curl -s -o /tmp/idx.json -w '%{http_code}' -u "$FEED_USER:$FEED_TOKEN" \
               "https://nuget.pkg.github.com/$FEED_OWNER/flatcontainer/$pkg/index.json")
             if [ "$code" = "200" ]; then

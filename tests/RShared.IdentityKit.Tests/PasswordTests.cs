@@ -1,9 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using RShared.AuthKit;
-using NSubstitute;
 using RShared.IdentityKit;
+using NSubstitute;
 
 using Xunit;
 

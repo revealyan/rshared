@@ -1,4 +1,4 @@
-namespace RShared.AuthKit;
+namespace RShared.IdentityKit;
 
 /// <summary>
 /// AuthKit dependency injection configuration options.

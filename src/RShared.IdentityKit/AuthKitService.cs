@@ -3,7 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 
-namespace RShared.AuthKit;
+namespace RShared.IdentityKit;
 
 /// <summary>
 /// Sign in implementation: cookie sessions, one-time Telegram codes, provider challenges.

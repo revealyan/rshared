@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace RShared.AuthKit;
+namespace RShared.IdentityKit;
 
 /// <summary>
 /// One time code generator shared by the store implementations.

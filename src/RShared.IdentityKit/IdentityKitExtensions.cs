@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using RShared.AuthKit;
+using RShared.IdentityKit;
 using RShared.Orm;
 
 namespace RShared.IdentityKit;

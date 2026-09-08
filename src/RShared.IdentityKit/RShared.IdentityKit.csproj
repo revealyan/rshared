@@ -1,9 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- компиляция встроенных Razor Pages, не только view-файлов -->
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,19 +13,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- PasswordHasher берём из shared framework AspNetCore.App — отдельный пакет не нужен -->
-    <!-- модель конфигурируется напрямую (HasIndex/HasConversion) — пинним, как Orm.EntityFrameworkCore -->
+    <!-- OAuth-хендлеры живут вне shared framework, начиная с .NET 3 -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.11" />
+    <!-- PasswordHasher identity-слоя приходит из shared framework; EF пинним, как Orm.EntityFrameworkCore -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RShared.AuthKit\RShared.AuthKit.csproj" />
     <ProjectReference Include="..\RShared.Orm.EntityFrameworkCore\RShared.Orm.EntityFrameworkCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- тестовая сборка и прокси-генератор NSubstitute видят internal-поверхность -->
     <InternalsVisibleTo Include="RShared.IdentityKit.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>
