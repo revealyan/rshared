@@ -52,6 +52,28 @@ builder.Services.AddPostgreSqlRepositories(
 
 `EnableRetryOnFailure` по умолчанию выключен: ретраящая стратегия исполнения EF несовместима с явными транзакциями, а unit of work их открывает. Включай только для контекстов, которые живут без unit of work.
 
+## Способ регистрации контекста
+
+Дефолт — `Scoped` (один контекст на скоуп, скоуп = единица работы). Управляется опцией:
+
+```csharp
+builder.Services.AddPostgreSqlRepositories(
+	o =>
+	{
+		o.ConnectionString = ...;
+		o.Registration = ContextRegistration.Pooled;   // Scoped | Pooled | Factory | PooledFactory
+	},
+	typeof(AppDbContext));
+```
+
+- `Scoped` — `AddDbContext`, стандарт для веба с unit of work;
+- `Pooled` — `AddDbContextPool`: тот же контракт, дешевле на горячем пути, контекст без собственного стейта;
+- `Factory` — `AddDbContextFactory`: singleton-фабрика короткоживущих контекстов, для фоновых воркеров;
+- `PooledFactory` — фабрика с пулом.
+
+Все режимы совместимы со стеком репозиториев: реестр понимает и прямой scoped-резолв,
+и `IDbContextFactory<T>` (контекст на скоуп, диспозит фабрика репозиториев).
+
 ## Зачем отдельный пакет
 
 Провайдер Npgsql — осознанная зависимость только для тех, кто на PostgreSQL: ядро ORM-стека остаётся провайдер-нейтральным (и не тянет Npgsql транзитивно), версия провайдера запинена в одном месте — здесь.

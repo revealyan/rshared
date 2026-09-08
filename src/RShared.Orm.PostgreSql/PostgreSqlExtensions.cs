@@ -89,7 +89,7 @@ public static class PostgreSqlExtensions
 		var dataSource = option.DataSource ?? new NpgsqlDataSourceBuilder(option.ConnectionString).Build();
 		services.TryAddSingleton(dataSource);
 
-		services.AddDbContext<TContext>(builder =>
+		void Configure(DbContextOptionsBuilder builder)
 		{
 			builder.UseNpgsql(dataSource, npgsql =>
 			{
@@ -107,6 +107,27 @@ public static class PostgreSqlExtensions
 			}
 
 			option.ConfigureDbContext?.Invoke(builder);
-		});
+		}
+
+		// реестр сущностей понимает все четыре режима: scoped резолвится напрямую,
+		// фабричные подхватываются через IDbContextFactory<T>
+		switch (option.Registration)
+		{
+			case ContextRegistration.Pooled:
+				services.AddDbContextPool<TContext>(Configure);
+				break;
+
+			case ContextRegistration.Factory:
+				services.AddDbContextFactory<TContext>(Configure);
+				break;
+
+			case ContextRegistration.PooledFactory:
+				services.AddPooledDbContextFactory<TContext>(Configure);
+				break;
+
+			default:
+				services.AddDbContext<TContext>(Configure);
+				break;
+		}
 	}
 }
