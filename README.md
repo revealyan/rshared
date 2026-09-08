@@ -10,6 +10,7 @@
 | `RShared.Mediator` | минимальный mediator: сообщение → хендлер |
 | `RShared.Orm` | контракты хранилища: репозиторий сущностей, фабрика, unit of work |
 | `RShared.Orm.EntityFrameworkCore` | реализация контрактов Orm на EF Core |
+| `RShared.Orm.PostgreSql` | коннектор Orm-стека к PostgreSQL: провайдер Npgsql, общий пул, snake_case, подключение одной строкой |
 | `RShared.RabbitMq` | шина поверх RabbitMQ: publisher/consumer адаптеры, JSON-сериализация |
 
 ## Подключение из GitHub Packages
