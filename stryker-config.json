@@ -1,0 +1,10 @@
+{
+	"stryker-config": {
+		"solution": "RShared.slnx",
+		"reporters": [ "progress", "json" ],
+		"thresholds": {
+			"high": 80,
+			"low": 60
+		}
+	}
+}

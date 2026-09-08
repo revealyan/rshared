@@ -1,10 +1,10 @@
-﻿namespace RShared.Orm;
+namespace RShared.Orm;
 
 /// <summary>
-/// Unit of work interface, represent atomic transaction
+/// Unit of work interface, represent atomic transaction scope
 /// </summary>
 public interface IUnitOfWork
-	: IDisposable
+	: IDisposable, IAsyncDisposable
 {
 	/// <summary>
 	/// Flush operation to transaction async

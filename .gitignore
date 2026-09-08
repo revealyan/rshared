@@ -490,3 +490,6 @@ dist/
 
 # serena local cache
 .serena/
+
+# Stryker.NET mutation testing output
+StrykerOutput/
