@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/RShared.AuthKit/RShared.AuthKit.csproj" />
+    <Project Path="src/RShared.IdentityKit/RShared.IdentityKit.csproj" />
     <Project Path="src/RShared.Mediator/RShared.Mediator.csproj" />
     <Project Path="src/RShared.Orm.EntityFrameworkCore/RShared.Orm.EntityFrameworkCore.csproj" />
     <Project Path="src/RShared.Orm/RShared.Orm.csproj" />
@@ -8,6 +9,8 @@
     <Project Path="src/RShared.RabbitMq/RShared.RabbitMq.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/RShared.AuthKit.Tests/RShared.AuthKit.Tests.csproj" />
+    <Project Path="tests/RShared.IdentityKit.Tests/RShared.IdentityKit.Tests.csproj" />
     <Project Path="tests/RShared.Mediator.Tests/RShared.Mediator.Tests.csproj" />
     <Project Path="tests/RShared.Orm.EntityFrameworkCore.Tests/RShared.Orm.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/RShared.Orm.PostgreSql.Tests/RShared.Orm.PostgreSql.Tests.csproj" />

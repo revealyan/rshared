@@ -1,3 +1,5 @@
+using System.Security.Claims;
+
 namespace RShared.AuthKit;
 
 /// <summary>
@@ -8,8 +10,10 @@ public sealed record ExternalIdentity(string Provider, string Id, string? Email 
 
 /// <summary>
 /// Application user resolved from an external identity.
+/// Optional <see cref="Claims"/> land in the session as is: the resolver knows the user,
+/// AuthKit stays ignorant of roles and stamps.
 /// </summary>
-public sealed record AuthKitUser(string Id, string? DisplayName = null);
+public sealed record AuthKitUser(string Id, string? DisplayName = null, IReadOnlyList<Claim>? Claims = null);
 
 /// <summary>
 /// Sign in / sign out operations used by both the built-in login page and consumer pages.

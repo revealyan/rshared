@@ -9,9 +9,15 @@ namespace RShared.AuthKit;
 public class AuthKitOption
 {
 	/// <summary>
+	/// Default cookie authentication scheme used for issued sessions.
+	/// Packages building on top of AuthKit hook into the scheme by this name.
+	/// </summary>
+	public const string DefaultScheme = "RShared.AuthKit";
+
+	/// <summary>
 	/// Cookie authentication scheme used for issued sessions.
 	/// </summary>
-	public string Scheme { get; set; } = "RShared.AuthKit";
+	public string Scheme { get; set; } = DefaultScheme;
 
 	/// <summary>
 	/// Path AuthKit redirects to when a session is required.
@@ -78,6 +84,11 @@ public class GoogleOption
 	/// OAuth callback path, must match the Google application configuration
 	/// </summary>
 	public string CallbackPath { get; set; } = "/authkit/google-callback";
+
+	/// <summary>
+	/// Lifetime of the issued session for Google sign ins
+	/// </summary>
+	public TimeSpan SessionLifetime { get; set; } = TimeSpan.FromDays(14);
 }
 
 /// <summary>
