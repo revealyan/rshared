@@ -1,6 +1,3 @@
-﻿
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -8,146 +5,101 @@ using Microsoft.Extensions.Hosting;
 namespace RShared.RabbitMq;
 
 /// <summary>
-/// RabbitMq extensions methods for dependency injection
+/// Registration of RabbitMq: typed handlers, publisher and hosted consumers
 /// </summary>
 public static class RabbitMqExtensions
 {
 	/// <summary>
-	/// Message processor marker type
-	/// </summary>
-	public static readonly Type MessageProcessorMarker = typeof(IRabbitMqMessageProcessor);
-
-	/// <summary>
-	/// Add RabbitMq services
+	/// Register RabbitMq infrastructure: options, connection factory, publisher and the
+	/// consumer hosted service. Queues are bound to handlers with
+	/// <see cref="AddRabbitMqHandler{THandler,TMessage}"/> in the composition root.
 	/// </summary>
 	/// <param name="services">Service collection</param>
-	/// <param name="configuration">Configuration</param>
-	/// <param name="configure">Configuration method</param>
-	/// <returns>Service collection</returns>
-	public static IApplicationBuilder UseRabbitMq(this IApplicationBuilder app)
+	/// <param name="configure">RabbitMq options</param>
+	public static IServiceCollection AddRabbitMq(this IServiceCollection services, Action<RabbitMqOption> configure)
 	{
-		var lifetime = app.ApplicationServices.GetRequiredService<IHostApplicationLifetime>();
-		var adapter = app.ApplicationServices.GetRequiredService<IRabbitMqConsumerAdapter>();
+		var option = new RabbitMqOption();
 
-		lifetime.ApplicationStarted.Register(() =>
+		configure(option);
+
+		if (string.IsNullOrWhiteSpace(option.ConnectionString))
 		{
-			adapter.StartAsync().Wait();
-		});
-
-		lifetime.ApplicationStopping.Register(() =>
-		{
-			adapter.StopAsync().Wait();
-		});
-
-		return app;
-	}
-
-
-	/// <summary>
-	/// Add RabbitMq services
-	/// </summary>
-	/// <param name="builder">Application builder</param>
-	/// <param name="configure">Configuration method</param>
-	/// <returns>Service collection</returns>
-	public static WebApplicationBuilder AddRabbitMq(this WebApplicationBuilder builder, Action<RabbitMqOption>? configure = null)
-	{
-		AddRabbitMq(builder.Services, builder.Configuration, configure);
-
-		return builder;
-	}
-
-	/// <summary>
-	/// Add RabbitMq services
-	/// </summary>
-	/// <param name="services">Service collection</param>
-	/// <param name="configuration">Configuration</param>
-	/// <param name="configure">Configuration method</param>
-	/// <returns>Service collection</returns>
-	public static IServiceCollection AddRabbitMq(this IServiceCollection services, IConfiguration configuration, Action<RabbitMqOption>? configure = null)
-	{
-		var configurations = configuration.GetSection("rabbitmq")?.Get<RabbitMqConfiguration[]>() ?? throw new ArgumentNullException("RabbitMq configurations not found");
-
-		services.TryAddSingleton(sp => new RabbitMqAdapter(configurations,
-				sp,
-				sp.GetServices<IRabbitMqMessageSerializer>(),
-				sp.GetService<IDefaultRabbitMqMessageSerializer>()));
-		services.TryAddSingleton<IRabbitMqConsumerAdapter>(sp => sp.GetRequiredService<RabbitMqAdapter>());
-		services.TryAddSingleton<IRabbitMqPublisherAdapter>(sp => sp.GetRequiredService<RabbitMqAdapter>());
-
-		var options = new RabbitMqOption();
-
-		configure?.Invoke(options);
-
-		if (options.AddAllProcessors)
-		{
-			var processorTypes = (options.Assemblies ?? AppDomain.CurrentDomain.GetAssemblies())
-				.SelectMany(a => a.GetTypes())
-				.Where(t => t.IsClass && !t.IsAbstract && t.IsAssignableTo(MessageProcessorMarker))
-				.ToArray();
-
-			foreach (var processorType in processorTypes)
-			{
-				services.TryAddRabbitMqProcessor(processorType);
-			}
+			throw new ArgumentException("ConnectionString is required", nameof(configure));
 		}
 
-		if (options.UseDefaultSerializer)
-		{
-			services.TryAddSingleton<IDefaultRabbitMqMessageSerializer>(new DefaultJsonRabbitMqMessageSerializer(options.JsonSerializerOptions));
-		}
+		// реестр нужен hosted-сервису даже без единого хендлера
+		GetOrCreateRegistry(services);
+
+		services.TryAddSingleton(option);
+		services.TryAddSingleton<IRabbitMqConnectionFactory, RabbitMqConnectionFactory>();
+		services.TryAddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
+		services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, RabbitMqConsumerService>());
 
 		return services;
 	}
 
 	/// <summary>
-	/// Add RabbitMq processor if it's not present in service collection
+	/// Bind a handler to its queue with topology. Queue names live here, in the composition
+	/// root (infra or api layer) — the handler class stays free of infrastructure details.
 	/// </summary>
-	/// <param name="builder">Web application builder</param>
-	/// <param name="messageProcessorType">Message processor type</param>
-	/// <returns>Service collection</returns>
-	public static WebApplicationBuilder TryAddRabbitMqProcessor(this WebApplicationBuilder builder, Type messageProcessorType)
-	{
-		TryAddRabbitMqProcessor(builder.Services, messageProcessorType);
-
-		return builder;
-	}
-
-	/// <summary>
-	/// Add RabbitMq processor if it's not present in service collection
-	/// </summary>
-	/// <typeparam name="TProcessor">Message processor type</typeparam>
-	/// <param name="builder">Web application builder</param>
-	/// <returns>Service collection</returns>
-	public static WebApplicationBuilder TryAddRabbitMqProcessor<TProcessor>(this WebApplicationBuilder builder)
-		where TProcessor : class, IRabbitMqMessageProcessor
-	{
-		TryAddRabbitMqProcessor(builder.Services, typeof(TProcessor));
-
-		return builder;
-	}
-
-	/// <summary>
-	/// Add RabbitMq processor if it's not present in service collection
-	/// </summary>
-	/// <typeparam name="TProcessor">Message processor type</typeparam>
+	/// <typeparam name="THandler">Handler implementation</typeparam>
+	/// <typeparam name="TMessage">Message type the body is deserialized to</typeparam>
 	/// <param name="services">Service collection</param>
-	/// <returns>Service collection</returns>
-	public static IServiceCollection TryAddRabbitMqProcessor<TProcessor>(this IServiceCollection services)
-		where TProcessor : class, IRabbitMqMessageProcessor
+	/// <param name="queueName">Queue name, unique within the application</param>
+	/// <param name="configureTopology">Queue topology overrides</param>
+	public static IServiceCollection AddRabbitMqHandler<THandler, TMessage>(this IServiceCollection services,
+		string queueName, Action<RabbitMqTopology>? configureTopology = null)
+		where THandler : class, IRabbitMqHandler<TMessage>
 	{
-		return TryAddRabbitMqProcessor(services, typeof(TProcessor));
+		var topology = new RabbitMqTopology();
+
+		configureTopology?.Invoke(topology);
+
+		GetOrCreateRegistry(services).Add(BuildEndpoint(queueName, topology, typeof(THandler), typeof(TMessage)));
+		services.TryAddScoped<THandler>();
+
+		return services;
 	}
 
-	/// <summary>
-	/// Add RabbitMq processor if it's not present in service collection
-	/// </summary>
-	/// <param name="services">Service collection</param>
-	/// <param name="messageProcessorType">Message processor type</param>
-	/// <returns>Service collection</returns>
-	public static IServiceCollection TryAddRabbitMqProcessor(this IServiceCollection services, Type messageProcessorType)
+	private static RabbitMqHandlerRegistry GetOrCreateRegistry(IServiceCollection services)
 	{
-		return services.Any(sd => sd.ImplementationType == messageProcessorType)
-			? services
-			: services.AddScoped(MessageProcessorMarker, messageProcessorType);
+		var existing = services
+			.Select(descriptor => descriptor.ImplementationInstance)
+			.OfType<RabbitMqHandlerRegistry>()
+			.FirstOrDefault();
+
+		if (existing is not null)
+		{
+			return existing;
+		}
+
+		var registry = new RabbitMqHandlerRegistry();
+
+		services.TryAddSingleton(registry);
+
+		return registry;
+	}
+
+	private static RabbitMqEndpoint BuildEndpoint(string queueName, RabbitMqTopology topology,
+		Type handlerType, Type messageType)
+	{
+		if (string.IsNullOrWhiteSpace(queueName))
+		{
+			throw new ArgumentException("Queue name is required", nameof(queueName));
+		}
+
+		var deadLetterQueue = topology.DeadLetterQueue is null
+			? $"{queueName}.dlq"
+			: topology.DeadLetterQueue.Length == 0 ? null : topology.DeadLetterQueue;
+
+		return new RabbitMqEndpoint(
+			queueName,
+			topology.Exchange ?? string.Empty,
+			topology.RoutingKey ?? queueName,
+			topology.MaxRetryCount,
+			deadLetterQueue,
+			topology.Durable,
+			handlerType,
+			messageType);
 	}
 }

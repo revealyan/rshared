@@ -2,6 +2,7 @@
 	"stryker-config": {
 		"solution": "RShared.slnx",
 		"reporters": [ "progress", "json" ],
+		"ignore-methods": [ "ConfigureAwait" ],
 		"thresholds": {
 			"high": 80,
 			"low": 60

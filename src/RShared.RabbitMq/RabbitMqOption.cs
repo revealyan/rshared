@@ -1,30 +1,41 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Text.Json;
 
 namespace RShared.RabbitMq;
 
 /// <summary>
-/// RabbitMq option
+/// RabbitMq options
 /// </summary>
-public class RabbitMqOption
+public sealed class RabbitMqOption
 {
 	/// <summary>
-	/// If <c>True</c> then adding all <see cref="IRabbitMqMessageProcessor"/> implementations to dependency injection from 
+	/// Connection string in amqp 0-9-1 format. Required, registration fails fast without it.
 	/// </summary>
-	public bool AddAllProcessors { get; set; } = true;
+	public string ConnectionString { get; set; } = string.Empty;
 
 	/// <summary>
-	/// Assemblies for searching <see cref="IRabbitMqMessageProcessor"/> implementations. If it's <c>null</c>, then using <see cref="AppDomain.CurrentDomain"/>
+	/// Client provided name shown in RabbitMq management. Defaults to the entry assembly name.
 	/// </summary>
-	public IEnumerable<Assembly>? Assemblies { get; set; }
+	// Stryker disable String : фолбэк для хостов без entry assembly — в тестах недостижим
+	public string ClientName { get; set; } = Assembly.GetEntryAssembly()?.GetName().Name ?? "RShared.RabbitMq";
 
 	/// <summary>
-	/// Use default serializer if not found specified
+	/// Prefetch (basicQos) per consumer channel: how many unacked messages a consumer may hold
 	/// </summary>
-	public bool UseDefaultSerializer { get; set; } = true;
+	public ushort PrefetchCount { get; set; } = 16;
 
 	/// <summary>
-	/// Json serializer options
+	/// Publisher confirms: publish completes only after the broker acks the message. On by default.
+	/// </summary>
+	public bool PublisherConfirms { get; set; } = true;
+
+	/// <summary>
+	/// Persistent delivery mode for published messages. On by default.
+	/// </summary>
+	public bool PersistentMessages { get; set; } = true;
+
+	/// <summary>
+	/// JSON serializer options for message bodies
 	/// </summary>
 	public JsonSerializerOptions? JsonSerializerOptions { get; set; }
 }

@@ -11,7 +11,7 @@
 | `RShared.Orm` | контракты хранилища: репозиторий сущностей, фабрика, unit of work |
 | `RShared.Orm.EntityFrameworkCore` | реализация контрактов Orm на EF Core |
 | `RShared.Orm.PostgreSql` | коннектор Orm-стека к PostgreSQL: провайдер Npgsql, общий пул, snake_case, подключение одной строкой |
-| `RShared.RabbitMq` | шина поверх RabbitMQ: publisher/consumer адаптеры, JSON-сериализация |
+| `RShared.RabbitMq` | шина поверх RabbitMQ: типизированные хендлеры, ретраи с DLQ, prefetch, publisher confirms, привязка очередей в composition root |
 
 ## Подключение из GitHub Packages
 
