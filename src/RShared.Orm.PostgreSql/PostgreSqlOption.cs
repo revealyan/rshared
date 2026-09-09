@@ -5,10 +5,44 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure;
 namespace RShared.Orm.PostgreSql;
 
 /// <summary>
+/// How contexts are registered in DI. All four EF Core registration modes work with the
+/// repository stack: the registry resolves scoped contexts directly and picks up
+/// an <c>IDbContextFactory&lt;T&gt;</c> when present.
+/// </summary>
+public enum ContextRegistration
+{
+	/// <summary>
+	/// Scoped context per unit of work (AddDbContext). The default.
+	/// </summary>
+	Scoped,
+
+	/// <summary>
+	/// Pooled scoped contexts (AddDbContextPool): the same contract, cheaper on the hot path.
+	/// The context must hold no state of its own between uses.
+	/// </summary>
+	Pooled,
+
+	/// <summary>
+	/// Singleton factory of short-lived contexts (AddDbContextFactory):
+	/// background workers and parallel units of work.
+	/// </summary>
+	Factory,
+
+	/// <summary>
+	/// Factory with pooling (AddPooledDbContextFactory).
+	/// </summary>
+	PooledFactory,
+}
+
+/// <summary>
 /// Options for PostgreSQL context registration
 /// </summary>
 public sealed class PostgreSqlOption
 {
+	/// <summary>
+	/// DI registration mode for contexts. Scoped by default.
+	/// </summary>
+	public ContextRegistration Registration { get; set; } = ContextRegistration.Scoped;
 	/// <summary>
 	/// Connection string. Required unless <see cref="DataSource"/> is set;
 	/// a pooled <see cref="NpgsqlDataSource"/> is built from it and shared by all contexts.

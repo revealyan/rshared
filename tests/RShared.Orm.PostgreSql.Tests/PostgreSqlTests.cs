@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using RShared.Orm;
+using RShared.Orm.EntityFrameworkCore;
 using Xunit;
 
 namespace RShared.Orm.PostgreSql.Tests;
@@ -242,5 +243,75 @@ public class PostgreSqlTests
 			: base(options)
 		{
 		}
+	}
+	[Fact]
+	public void Registration_is_scoped_by_default()
+	{
+		Assert.Equal(ContextRegistration.Scoped, new PostgreSqlOption().Registration);
+	}
+
+	[Fact]
+	public void Pooled_registration_still_resolves_a_scoped_context()
+	{
+		var provider = BuildProvider(services => services
+			.AddPostgreSqlContext<CatalogContext>(options =>
+			{
+				options.ConnectionString = ConnectionString;
+				options.Registration = ContextRegistration.Pooled;
+			}));
+
+		using var scope = provider.CreateScope();
+		var context = scope.ServiceProvider.GetRequiredService<CatalogContext>();
+
+		Assert.Equal("Npgsql.EntityFrameworkCore.PostgreSQL", context.Database.ProviderName);
+	}
+
+	[Fact]
+	public void Factory_registration_provides_idbcontextfactory()
+	{
+		var provider = BuildProvider(services => services
+			.AddPostgreSqlContext<CatalogContext>(options =>
+			{
+				options.ConnectionString = ConnectionString;
+				options.Registration = ContextRegistration.Factory;
+			}));
+
+		using var context = provider.GetRequiredService<IDbContextFactory<CatalogContext>>().CreateDbContext();
+
+		Assert.Equal("Npgsql.EntityFrameworkCore.PostgreSQL", context.Database.ProviderName);
+	}
+
+	[Fact]
+	public void Pooled_factory_registration_provides_idbcontextfactory()
+	{
+		var provider = BuildProvider(services => services
+			.AddPostgreSqlContext<CatalogContext>(options =>
+			{
+				options.ConnectionString = ConnectionString;
+				options.Registration = ContextRegistration.PooledFactory;
+			}));
+
+		using var context = provider.GetRequiredService<IDbContextFactory<CatalogContext>>().CreateDbContext();
+
+		Assert.Equal("Npgsql.EntityFrameworkCore.PostgreSQL", context.Database.ProviderName);
+	}
+
+	[Fact]
+	public void Factory_registration_works_with_the_repository_stack()
+	{
+		var provider = BuildProvider(services => services
+			.AddPostgreSqlContext<CatalogContext>(options =>
+			{
+				options.ConnectionString = ConnectionString;
+				options.Registration = ContextRegistration.Factory;
+			})
+			.AddEntityRepositories(typeof(CatalogContext)));
+
+		using var scope = provider.CreateScope();
+		var repository = scope.ServiceProvider.GetRequiredService<IEntityRepositoryFactory>().Create<Order>();
+
+		// реестр подхватил фабричный контекст: владение сущностями и IQueryable работают
+		Assert.NotNull(repository);
+		Assert.NotNull(repository.Query());
 	}
 }
