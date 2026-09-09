@@ -13,7 +13,7 @@ namespace RShared.IdentityKit;
 /// </summary>
 internal sealed class SecurityStampValidator<TUser>(
 	IEntityRepositoryFactory factory,
-	IMemoryCache cache,
+	ISecurityStampCache stamps,
 	IdentityKitOption option) where TUser : IdentityKitUser
 {
 	/// <summary>
@@ -29,7 +29,7 @@ internal sealed class SecurityStampValidator<TUser>(
 		}
 
 		// свежий кэш с тем же штампом — БД не трогаем (окно инвалидации = интервалу)
-		if (cache.TryGetValue(userId, out string? cached) && cached == stampClaim)
+		if (await stamps.GetAsync(userId) == stampClaim)
 		{
 			return;
 		}
@@ -41,6 +41,6 @@ internal sealed class SecurityStampValidator<TUser>(
 			return;
 		}
 
-		cache.Set(userId, user.SecurityStamp, option.SecurityStampValidationInterval);
+		await stamps.SetAsync(userId, user.SecurityStamp, option.SecurityStampValidationInterval);
 	}
 }
