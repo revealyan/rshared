@@ -57,6 +57,8 @@ jobs:
       FEED_OWNER: revealyan
       FEED_USER: ${{ github.actor }}
       FEED_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # ключ публичного фида; без него шаг nuget.org пропускается
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
