@@ -6,6 +6,8 @@
     <Project Path="src/RShared.Orm/RShared.Orm.csproj" />
     <Project Path="src/RShared.Orm.PostgreSql/RShared.Orm.PostgreSql.csproj" />
     <Project Path="src/RShared.RabbitMq/RShared.RabbitMq.csproj" />
+    <Project Path="src/RShared.Redis/RShared.Redis.csproj" />
+    <Project Path="src/RShared.Redis.IdentityKit/RShared.Redis.IdentityKit.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/RShared.IdentityKit.Tests/RShared.IdentityKit.Tests.csproj" />
@@ -13,5 +15,7 @@
     <Project Path="tests/RShared.Orm.EntityFrameworkCore.Tests/RShared.Orm.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/RShared.Orm.PostgreSql.Tests/RShared.Orm.PostgreSql.Tests.csproj" />
     <Project Path="tests/RShared.RabbitMq.Tests/RShared.RabbitMq.Tests.csproj" />
+    <Project Path="tests/RShared.Redis.Tests/RShared.Redis.Tests.csproj" />
+    <Project Path="tests/RShared.Redis.IdentityKit.Tests/RShared.Redis.IdentityKit.Tests.csproj" />
   </Folder>
 </Solution>
