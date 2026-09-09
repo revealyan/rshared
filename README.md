@@ -7,6 +7,8 @@
 [![RShared.Orm.EntityFrameworkCore](https://img.shields.io/nuget/v/RShared.Orm.EntityFrameworkCore)](https://www.nuget.org/packages/RShared.Orm.EntityFrameworkCore)
 [![RShared.Orm.PostgreSql](https://img.shields.io/nuget/v/RShared.Orm.PostgreSql)](https://www.nuget.org/packages/RShared.Orm.PostgreSql)
 [![RShared.RabbitMq](https://img.shields.io/nuget/v/RShared.RabbitMq)](https://www.nuget.org/packages/RShared.RabbitMq)
+[![RShared.Redis](https://img.shields.io/nuget/v/RShared.Redis)](https://www.nuget.org/packages/RShared.Redis)
+[![RShared.Redis.IdentityKit](https://img.shields.io/nuget/v/RShared.Redis.IdentityKit)](https://www.nuget.org/packages/RShared.Redis.IdentityKit)
 
 Библиотеки-рельсы для проектов revealyan: каждая самостоятельна, минимум зависимостей, подключение одной строкой в хост.
 
@@ -20,6 +22,8 @@
 | `RShared.Orm.EntityFrameworkCore` | реализация контрактов Orm на EF Core |
 | `RShared.Orm.PostgreSql` | коннектор Orm-стека к PostgreSQL: провайдер Npgsql, общий пул, snake_case, подключение одной строкой |
 | `RShared.RabbitMq` | шина поверх RabbitMQ: типизированные хендлеры, ретраи с DLQ, prefetch, publisher confirms, привязка очередей в composition root |
+| `RShared.Redis` | рельса поверх Redis: кэш с GetOrSet и single-flight, pub/sub, streams с consumer groups и DLQ, локи, rate limiter (fixed/sliding), IDistributedCache-адаптер |
+| `RShared.Redis.IdentityKit` | мостик Redis ↔ IdentityKit: одноразовые коды и глобальный stamp-кэш — мульти-нодный IdentityKit |
 
 ## Подключение
 
