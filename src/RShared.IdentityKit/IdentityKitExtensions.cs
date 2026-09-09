@@ -43,6 +43,7 @@ public static class IdentityKitExtensions
 		}
 
 		services.TryAddScoped<IOneTimeCodeStore, EfOneTimeCodeStore>();
+		services.TryAddSingleton<ISecurityStampCache, MemorySecurityStampCache>();
 		services.TryAddScoped<SecurityStampValidator<TUser>>();
 		services.TryAddScoped<IIdentityKit>(sp => new IdentityKitService<TUser>(
 			sp.GetRequiredService<IAuthKit>(),

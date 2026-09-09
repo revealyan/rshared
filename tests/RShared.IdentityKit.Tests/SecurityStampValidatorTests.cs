@@ -18,7 +18,7 @@ public sealed class SecurityStampValidatorTests
 {
 	private readonly IEntityRepository<IdentityKitUser> _repo = Substitute.For<IEntityRepository<IdentityKitUser>>();
 	private readonly IEntityRepositoryFactory _factory = Substitute.For<IEntityRepositoryFactory>();
-	private readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
+	private readonly ISecurityStampCache _cache = new MemorySecurityStampCache(new MemoryCache(new MemoryCacheOptions()));
 
 	public SecurityStampValidatorTests()
 	{
@@ -152,5 +152,21 @@ public sealed class SecurityStampValidatorTests
 		var second = Context(Principal(userId, "s1"));
 		await validator.ValidateAsync(second);
 		Assert.Null(second.Principal);
+	}
+
+	[Fact]
+	public async Task Memory_cache_invalidate_evicts_the_entry()
+	{
+		var cache = new MemorySecurityStampCache(new MemoryCache(new MemoryCacheOptions()));
+
+		await cache.SetAsync(Guid.NewGuid(), "s1", TimeSpan.FromMinutes(30));
+
+		var userId = Guid.NewGuid();
+		await cache.SetAsync(userId, "s2", TimeSpan.FromMinutes(30));
+		Assert.Equal("s2", await cache.GetAsync(userId));
+
+		await cache.InvalidateAsync(userId);
+
+		Assert.Null(await cache.GetAsync(userId));
 	}
 }
